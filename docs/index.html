@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>clustermux — one terminal, every cluster</title>
+<meta name="description" content="A dependency-free TUI for tmux sessions spread across SSH hosts. Discover, attach, and manage remote agent sessions from one terminal window.">
+<meta property="og:title" content="clustermux — one terminal, every cluster">
+<meta property="og:description" content="A dependency-free TUI for tmux sessions spread across SSH hosts.">
+<meta property="og:image" content="assets/clustermux-hero.jpg">
+<link rel="icon" type="image/png" href="assets/clustermux-logo.png">
+<style>
+  :root {
+    --bg: #05080f;
+    --panel: #0b1120;
+    --panel-2: #0d1424;
+    --border: #1c2740;
+    --cyan: #4be1e1;
+    --cyan-dim: #39c5cf;
+    --green: #3fb950;
+    --red: #f85149;
+    --amber: #d29922;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(57,197,207,.09), transparent),
+      linear-gradient(rgba(28,39,64,.25) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(28,39,64,.25) 1px, transparent 1px);
+    background-size: 100% 100%, 44px 44px, 44px 44px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+  a { color: var(--cyan); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(14px);
+    background: rgba(5,8,15,.72);
+    border-bottom: 1px solid var(--border);
+  }
+  nav .wrap { display: flex; align-items: center; gap: 12px; height: 60px; }
+  nav img { width: 30px; height: 30px; border-radius: 7px; }
+  nav .brand { font-weight: 700; letter-spacing: .5px; }
+  nav .spacer { flex: 1; }
+  nav .links { display: flex; gap: 22px; font-size: 13.5px; }
+  nav .links a { color: var(--muted); }
+  nav .links a:hover { color: var(--cyan); text-decoration: none; }
+  .gh-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 14px; font-size: 13px; color: var(--text);
+    background: var(--panel); transition: border-color .2s;
+  }
+  .gh-btn:hover { border-color: var(--cyan-dim); text-decoration: none; }
+  @media (max-width: 720px) { nav .links { display: none; } }
+
+  /* ---------- hero ---------- */
+  header.hero { padding: 84px 0 40px; text-align: center; }
+  .hero img.logo {
+    width: 108px; height: 108px; border-radius: 24px;
+    box-shadow: 0 0 60px rgba(57,197,207,.35);
+    margin-bottom: 26px;
+  }
+  .hero h1 { font-size: clamp(38px, 6vw, 60px); letter-spacing: 1px; }
+  .hero h1 .prompt { color: var(--cyan); }
+  .hero .tagline { font-size: clamp(16px, 2.4vw, 21px); color: var(--muted); margin-top: 12px; }
+  .hero .tagline b { color: var(--text); font-weight: 600; }
+  .badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 26px 0 30px; }
+  .badge {
+    font-size: 12px; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 4px 13px; background: var(--panel);
+  }
+  .badge b { color: var(--cyan); font-weight: 600; }
+  .install-cmd {
+    display: inline-flex; align-items: center; gap: 14px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 18px; font-size: 14.5px;
+  }
+  .install-cmd .dollar { color: var(--green); user-select: none; }
+  .copy-btn {
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--muted);
+    border-radius: 7px; padding: 4px 11px; font-family: var(--mono); font-size: 12px;
+    cursor: pointer; transition: all .2s;
+  }
+  .copy-btn:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+  .hero-figure { margin-top: 52px; }
+  .hero-figure img {
+    width: 100%; border-radius: 14px; border: 1px solid var(--border);
+    box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 90px rgba(57,197,207,.10);
+    display: block;
+  }
+
+  /* ---------- sections ---------- */
+  section { padding: 84px 0 20px; }
+  .kicker { color: var(--cyan); font-size: 13px; letter-spacing: 2.5px; text-transform: uppercase; }
+  h2 { font-size: clamp(24px, 3.6vw, 34px); margin: 10px 0 14px; letter-spacing: .5px; }
+  .section-sub { color: var(--muted); max-width: 640px; font-size: 15px; }
+
+  /* ---------- demo terminal ---------- */
+  .term-window {
+    margin-top: 38px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 30px 90px rgba(0,0,0,.6), 0 0 70px rgba(57,197,207,.07);
+    position: relative;
+  }
+  .term-chrome {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 16px; background: var(--panel-2); border-bottom: 1px solid var(--border);
+  }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
+  .term-chrome .tab-title { margin-left: 10px; font-size: 12.5px; color: var(--muted); }
+  .term-body { display: grid; grid-template-columns: 250px 1fr; min-height: 430px; }
+  @media (max-width: 720px) { .term-body { grid-template-columns: 190px 1fr; } }
+
+  .nav-pane { border-right: 1px solid var(--border); padding: 12px 0; font-size: 12.5px; background: #0a0f1d; transition: box-shadow .3s; }
+  .nav-pane.focused { box-shadow: inset 3px 0 0 var(--cyan-dim); }
+  .nav-header {
+    background: var(--cyan-dim); color: #04121a; font-weight: 700;
+    margin: -12px 0 8px; padding: 7px 12px; font-size: 11.5px; letter-spacing: .6px;
+  }
+  .nav-status { color: var(--muted); padding: 0 12px 8px; font-size: 11.5px; min-height: 20px; }
+  .nav-row { padding: 2.5px 12px; white-space: nowrap; color: var(--muted); display: flex; gap: 7px; align-items: baseline; }
+  .nav-row.host { color: var(--text); font-weight: 600; }
+  .nav-row.session { padding-left: 24px; font-weight: 400; }
+  .nav-row .count { margin-left: auto; color: var(--muted); font-weight: 400; }
+  .nav-row.cursor { background: var(--cyan); color: #04121a; border-radius: 3px; margin: 0 5px; padding-left: 7px; }
+  .nav-row.cursor.session { padding-left: 19px; }
+  .nav-row.cursor .count, .nav-row.cursor .st { color: #04121a; }
+  .st.ok { color: var(--green); } .st.down { color: var(--red); } .st.load { color: var(--muted); }
+  .nav-footer { margin-top: 14px; padding: 10px 12px 0; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); min-height: 52px; }
+  .nav-footer .accent { color: var(--cyan); }
+
+  .remote-pane { display: flex; flex-direction: column; min-width: 0; transition: opacity .3s; }
+  .remote-pane.dim { opacity: .55; }
+  .pane-title {
+    padding: 7px 14px; font-size: 11.5px; color: var(--muted);
+    border-bottom: 1px solid var(--border); background: var(--panel-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .pane-body {
+    flex: 1; padding: 14px 16px; font-size: 12.8px; line-height: 1.55;
+    white-space: pre-wrap; word-break: break-word; overflow: hidden;
+    color: #c9d1d9;
+  }
+  .pane-body .g { color: var(--green); }
+  .pane-body .c { color: var(--cyan); }
+  .pane-body .m { color: var(--muted); }
+  .pane-body .y { color: var(--amber); }
+  .caret { display: inline-block; width: 8px; height: 15px; background: var(--cyan); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .idle-ph { text-align: center; padding-top: 130px; color: var(--muted); font-size: 12.5px; }
+  .idle-ph .big { color: var(--text); font-weight: 700; font-size: 13.5px; display: block; margin-bottom: 10px; }
+
+  .term-statusbar {
+    background: #1a3a5c; color: #dbe9f5; font-size: 11.5px;
+    padding: 5px 14px; display: flex; justify-content: space-between;
+  }
+
+  .keycap {
+    position: absolute; right: 18px; bottom: 44px; z-index: 5;
+    background: var(--panel-2); border: 1px solid var(--cyan-dim);
+    border-bottom-width: 3px; border-radius: 8px;
+    color: var(--cyan); font-size: 13px; font-weight: 700;
+    padding: 7px 14px; opacity: 0; transform: translateY(6px);
+    transition: opacity .15s, transform .15s;
+    pointer-events: none;
+  }
+  .keycap.show { opacity: 1; transform: translateY(0); }
+  .keycap.press { transform: translateY(2px) scale(.94); border-bottom-width: 1px; }
+  .toast {
+    position: absolute; left: 50%; top: 70px; transform: translateX(-50%) translateY(-8px);
+    background: #0e2a1b; border: 1px solid var(--green); color: #7ee2a0;
+    font-size: 12.5px; padding: 8px 18px; border-radius: 8px;
+    opacity: 0; transition: all .25s; z-index: 6; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- features ---------- */
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 36px; }
+  .feature {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 22px 22px 20px; transition: border-color .25s, transform .25s;
+  }
+  .feature:hover { border-color: var(--cyan-dim); transform: translateY(-3px); }
+  .feature .glyph { color: var(--cyan); font-size: 19px; }
+  .feature h3 { font-size: 15.5px; margin: 12px 0 7px; letter-spacing: .3px; }
+  .feature p { font-size: 13px; color: var(--muted); }
+
+  /* ---------- architecture ---------- */
+  .arch-figure { margin-top: 34px; }
+  .arch-figure img { width: 100%; border-radius: 14px; border: 1px solid var(--border); display: block; box-shadow: 0 24px 70px rgba(0,0,0,.5); }
+
+  /* ---------- quickstart ---------- */
+  .steps { display: grid; gap: 14px; margin-top: 34px; }
+  .step {
+    display: grid; grid-template-columns: 44px 1fr; gap: 16px; align-items: start;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px;
+  }
+  .step .num {
+    width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center;
+    background: rgba(57,197,207,.12); color: var(--cyan); font-weight: 700; border: 1px solid rgba(57,197,207,.35);
+  }
+  .step h3 { font-size: 14.5px; margin-bottom: 3px; }
+  .step p { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
+  .code {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: #070b14; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; font-size: 13px;
+  }
+  .code .dollar { color: var(--green); user-select: none; }
+  .code code { word-break: break-all; }
+
+  /* ---------- keys ---------- */
+  .keys { width: 100%; border-collapse: collapse; margin-top: 30px; font-size: 13px; }
+  .keys th, .keys td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); }
+  .keys th { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: 1px; }
+  .keys td kbd {
+    background: var(--panel-2); border: 1px solid var(--border); border-bottom-width: 2.5px;
+    border-radius: 6px; padding: 2px 9px; font-size: 12px; color: var(--cyan); font-family: var(--mono);
+  }
+  .keys td { color: var(--muted); }
+  .keys td:first-child { white-space: nowrap; }
+
+  footer { border-top: 1px solid var(--border); margin-top: 90px; padding: 34px 0 44px; color: var(--muted); font-size: 12.5px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+  ::selection { background: rgba(57,197,207,.3); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <img src="assets/clustermux-logo.png" alt="clustermux logo">
+    <span class="brand">clustermux</span>
+    <span class="spacer"></span>
+    <div class="links">
+      <a href="#demo">Demo</a>
+      <a href="#features">Features</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#install">Install</a>
+    </div>
+    <a class="gh-btn" href="https://github.com/lyttttt3333/clustermux">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+      GitHub
+    </a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="logo" src="assets/clustermux-logo.png" alt="clustermux logo">
+    <h1><span class="prompt">$</span> clustermux</h1>
+    <p class="tagline">One terminal. <b>Every cluster.</b><br>A dependency-free TUI for tmux sessions spread across SSH hosts.</p>
+    <div class="badges">
+      <span class="badge"><b>MIT</b> license</span>
+      <span class="badge">Python <b>≥ 3.9</b></span>
+      <span class="badge"><b>zero</b> dependencies</span>
+      <span class="badge">single file</span>
+    </div>
+    <div class="install-cmd">
+      <span class="dollar">$</span>
+      <code>pipx install clustermux</code>
+      <button class="copy-btn" data-copy="pipx install clustermux">copy</button>
+    </div>
+    <div class="hero-figure">
+      <img src="assets/clustermux-hero.jpg" alt="One workstation driving tmux agent sessions across a fleet of SSH hosts">
+    </div>
+  </div>
+</header>
+
+<section id="demo">
+  <div class="wrap">
+    <span class="kicker">Live demo</span>
+    <h2>What it looks like</h2>
+    <p class="section-sub">A scripted replay of a real session: discover every host, walk the navigator, attach a running agent, hand it off to its own tab.</p>
+
+    <div class="term-window" id="termWindow">
+      <div class="term-chrome">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="tab-title">CLUSTERMUX — iTerm2</span>
+      </div>
+      <div class="term-body">
+        <div class="nav-pane focused" id="navPane">
+          <div class="nav-header">CLUSTERMUX · NAVIGATOR</div>
+          <div class="nav-status" id="navStatus">&nbsp;</div>
+          <div id="navRows"></div>
+          <div class="nav-footer" id="navFooter"></div>
+        </div>
+        <div class="remote-pane dim" id="remotePane">
+          <div class="pane-title" id="paneTitle">Remote tmux</div>
+          <div class="pane-body" id="paneBody"><div class="idle-ph"><span class="big">CLUSTERMUX · REMOTE TERMINAL</span>Choose a cluster or tmux session on the left.<br><br><span class="m">Cluster: b Bash / t tmux&nbsp;&nbsp;&nbsp;&nbsp;Session: Enter / f fork / x kill</span></div></div>
+        </div>
+      </div>
+      <div class="term-statusbar"><span>&nbsp;CLUSTERMUX</span><span>Shift+Left: sidebar · remote tmux: C-b&nbsp;</span></div>
+      <div class="keycap" id="keycap">↓</div>
+      <div class="toast" id="toast">Handed off to a new iTerm tab</div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <span class="kicker">Features</span>
+    <h2>Built for fleets of agents</h2>
+    <p class="section-sub">Long-running agents on remote GPUs shouldn't die with your laptop lid. clustermux keeps every session visible and one keystroke away.</p>
+    <div class="features">
+      <div class="feature"><div class="glyph">◈</div><h3>Parallel discovery</h3><p>One dashboard for every host — reachability, latency, running command and working directory, queried over SSH at once.</p></div>
+      <div class="feature"><div class="glyph">⇄</div><h3>Persistent connections</h3><p>Each attached session lives in a hidden local tmux window. Detach, re-attach, switch hosts — the remote work never notices.</p></div>
+      <div class="feature"><div class="glyph">⧉</div><h3>iTerm2 handoff</h3><p>Promote any session to its own tab with <b>o</b>. The tab supervises the SSH link and auto-reconnects after network drops.</p></div>
+      <div class="feature"><div class="glyph">⑂</div><h3>Fork running agents</h3><p>Clone a live Codex session into a new tmux with <b>f</b> — clustermux finds the active rollout thread via /proc and runs codex fork.</p></div>
+      <div class="feature"><div class="glyph">✓</div><h3>One-command setup</h3><p><b>clustermux --init</b> scans your SSH config, installs your key where it's rejected, and writes the hosts file. <b>--check</b> verifies it all.</p></div>
+      <div class="feature"><div class="glyph">∅</div><h3>Zero dependencies</h3><p>A single Python file on the standard library. No pip packages, no daemons, nothing running on the remote hosts but tmux.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="wrap">
+    <span class="kicker">Architecture</span>
+    <h2>How it works</h2>
+    <p class="section-sub">A local two-pane tmux workspace drives everything: the navigator speaks SSH to each host, and every attached session is a supervised, reusable connection pane.</p>
+    <div class="arch-figure">
+      <img src="assets/architecture.svg" alt="clustermux architecture: local navigator connecting over SSH to tmux sessions on multiple clusters">
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <span class="kicker">Quickstart</span>
+    <h2>Up in three commands</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <div>
+          <h3>Install</h3>
+          <p>pipx, pip, or a single-file download — your pick.</p>
+          <div class="code"><span class="dollar">$</span><code>pipx install clustermux</code><button class="copy-btn" data-copy="pipx install clustermux">copy</button></div>
+          <div class="code" style="margin-top:8px"><span class="dollar">$</span><code>curl -L -o ~/.local/bin/clustermux https://raw.githubusercontent.com/lyttttt3333/clustermux/main/clustermux.py && chmod +x ~/.local/bin/clustermux</code><button class="copy-btn" data-copy="curl -L -o ~/.local/bin/clustermux https://raw.githubusercontent.com/lyttttt3333/clustermux/main/clustermux.py && chmod +x ~/.local/bin/clustermux">copy</button></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <div>
+          <h3>Initialize</h3>
+          <p>Scans your SSH config and known_hosts, installs your key where needed, writes hosts.json.</p>
+          <div class="code"><span class="dollar">$</span><code>clustermux --init</code><button class="copy-btn" data-copy="clustermux --init">copy</button></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <div>
+          <h3>Fly</h3>
+          <p>Opens the manager workspace in a new iTerm tab. <b>--check</b> verifies your setup any time.</p>
+          <div class="code"><span class="dollar">$</span><code>clustermux</code><button class="copy-btn" data-copy="clustermux">copy</button></div>
+        </div>
+      </div>
+    </div>
+
+    <table class="keys">
+      <tr><th>Key</th><th>Action</th></tr>
+      <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>move between clusters and sessions</td></tr>
+      <tr><td><kbd>Enter</kbd></td><td>attach the selected session in the right pane</td></tr>
+      <tr><td><kbd>b</kbd> / <kbd>t</kbd></td><td>remote Bash shell / new empty tmux on the cluster</td></tr>
+      <tr><td><kbd>f</kbd></td><td>fork the selected Codex session into a new tmux</td></tr>
+      <tr><td><kbd>e</kbd> / <kbd>x</kbd></td><td>rename / kill the selected session</td></tr>
+      <tr><td><kbd>o</kbd></td><td>hand off to a standalone iTerm tab (auto-reconnects)</td></tr>
+      <tr><td><kbd>Shift</kbd>+<kbd>←</kbd></td><td>jump back to the sidebar from the remote pane</td></tr>
+      <tr><td><kbd>q</kbd></td><td>close the workspace — remote sessions keep running</td></tr>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>clustermux · MIT license</span>
+    <span><a href="https://github.com/lyttttt3333/clustermux">GitHub</a> · <a href="https://github.com/lyttttt3333/clustermux/issues">Issues</a></span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- copy buttons ---------- */
+  document.querySelectorAll(".copy-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var text = btn.getAttribute("data-copy");
+      var done = function () {
+        btn.textContent = "copied ✓";
+        setTimeout(function () { btn.textContent = "copy"; }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, done);
+      } else {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta);
+        done();
+      }
+    });
+  });
+
+  /* ---------- demo data ---------- */
+  var HOSTS = [
+    { group: "gpu",  label: "login-01",  up: true,  sessions: [] },
+    { group: "gpu",  label: "vscode-02", up: true,  sessions: [
+      { name: "train",  cmd: "codex", attached: true },
+      { name: "eval",   cmd: "codex" },
+      { name: "squeue", cmd: "watch" }
+    ]},
+    { group: "cpu",  label: "login",     up: true,  sessions: [
+      { name: "data-pipe", cmd: "bash" }
+    ]},
+    { group: "edge", label: "dev",       up: false, sessions: [] }
+  ];
+
+  var navRows    = document.getElementById("navRows");
+  var navStatus  = document.getElementById("navStatus");
+  var navFooter  = document.getElementById("navFooter");
+  var navPane    = document.getElementById("navPane");
+  var remotePane = document.getElementById("remotePane");
+  var paneTitle  = document.getElementById("paneTitle");
+  var paneBody   = document.getElementById("paneBody");
+  var keycap     = document.getElementById("keycap");
+  var toast      = document.getElementById("toast");
+
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  /* flat row model: host rows followed by their session rows */
+  function flatRows() {
+    var rows = [];
+    HOSTS.forEach(function (h, hi) {
+      rows.push({ kind: "host", host: h, hi: hi });
+      h.sessions.forEach(function (s, si) {
+        rows.push({ kind: "session", host: h, session: s, hi: hi, si: si });
+      });
+    });
+    return rows;
+  }
+
+  function renderRows(cursor) {
+    var rows = flatRows();
+    navRows.innerHTML = rows.map(function (row, i) {
+      if (row.kind === "host") {
+        var st = row.host.up
+          ? '<span class="st ok">●</span>'
+          : '<span class="st down">×</span>';
+        var count = row.host.up ? String(row.host.sessions.length) : "–";
+        return '<div class="nav-row host' + (i === cursor ? " cursor" : "") + '">' +
+          st + esc(row.host.group) + "/" + esc(row.host.label) +
+          '<span class="count">' + count + "</span></div>";
+      }
+      var s = row.session;
+      var mark = s.attached ? "◆" : " ";
+      return '<div class="nav-row session' + (i === cursor ? " cursor" : "") + '">' +
+        mark + " " + esc(s.name) +
+        '<span class="count">' + esc(s.cmd) + "</span></div>";
+    }).join("");
+  }
+
+  function setFooter(kind) {
+    navFooter.innerHTML = kind === "host"
+      ? '<span class="accent">Cluster:</span> b Bash · t new tmux<br>↑↓ select · r refresh · q close'
+      : '<span class="accent">Session:</span> Enter open · f fork · x kill<br>e rename · o handoff tab · r refresh';
+  }
+
+  function flashKey(label, ms) {
+    keycap.textContent = label;
+    keycap.classList.add("show");
+    keycap.classList.add("press");
+    return wait(ms || 420).then(function () {
+      keycap.classList.remove("press");
+      return wait(160);
+    }).then(function () {
+      keycap.classList.remove("show");
+    });
+  }
+
+  function showIdle() {
+    paneTitle.textContent = "Remote tmux";
+    paneBody.innerHTML = '<div class="idle-ph"><span class="big">CLUSTERMUX · REMOTE TERMINAL</span>' +
+      "Choose a cluster or tmux session on the left.<br><br>" +
+      '<span class="m">Cluster: b Bash / t tmux&nbsp;&nbsp;&nbsp;&nbsp;Session: Enter / f fork / x kill</span></div>';
+  }
+
+  function streamLines(lines, baseDelay) {
+    var out = "";
+    var chain = Promise.resolve();
+    lines.forEach(function (item, idx) {
+      chain = chain.then(function () {
+        out += item.html + "\n";
+        paneBody.innerHTML = out + '<span class="caret"></span>';
+        return wait(item.delay != null ? item.delay : baseDelay);
+      });
+    });
+    return chain.then(function () {
+      paneBody.innerHTML = out; /* drop caret at end */
+    });
+  }
+
+  function typeCommand(text) {
+    return streamLines([{ html: '<span class="g">$</span> ', delay: 0 }], 0).then(function () {
+      var typed = "";
+      var chain = Promise.resolve();
+      text.split("").forEach(function (ch) {
+        chain = chain.then(function () {
+          typed += ch;
+          paneBody.innerHTML = '<span class="g">$</span> ' + esc(typed) + '<span class="caret"></span>';
+          return wait(55 + Math.random() * 70);
+        });
+      });
+      return chain;
+    });
+  }
+
+  var CODEX_STREAM = [
+    { html: '<span class="c">codex</span> <span class="m">v0.31 · gpt-5.3-codex · gpu/vscode-02</span>', delay: 500 },
+    { html: 'Reading project… <span class="m">42 files, 8.1k lines</span>', delay: 650 },
+    { html: '<span class="y">▸ plan:</span> shard the condition-cache writer', delay: 700 },
+    { html: '  <span class="g">✓</span> scan src/cache/ <span class="m">(12 files)</span>', delay: 480 },
+    { html: '  <span class="g">✓</span> draft patch v1 <span class="m">(+214 −96)</span>', delay: 560 },
+    { html: '  <span class="g">✓</span> tests <span class="m">118 passed, 0 failed</span>', delay: 620 },
+    { html: '  <span class="y">▸</span> training run untouched — still on GPU 0-7', delay: 500 },
+    { html: '<span class="m">tokens 84.2k · ctx 41% · session train</span>', delay: 400 }
+  ];
+
+  function runDemo() {
+    return Promise.resolve().then(function () {
+      /* scene 1: discovery */
+      showIdle();
+      remotePane.classList.add("dim");
+      navPane.classList.add("focused");
+      navRows.innerHTML = "";
+      navStatus.innerHTML = '<span class="st load">⠋</span> Discovering remote tmux sessions…';
+      return wait(reduced ? 0 : 1100);
+    }).then(function () {
+      renderRows(-1);
+      navStatus.textContent = "3/4 up · 4 sessions · refreshed now";
+      return wait(reduced ? 0 : 700);
+    }).then(function () {
+      /* scene 2: walk down to gpu/vscode-02 → train */
+      renderRows(0); setFooter("host");
+      return flashKey("↓").then(function () { renderRows(1); return wait(240); })
+        .then(function () { return flashKey("↓"); })
+        .then(function () { renderRows(2); setFooter("session"); return wait(300); });
+    }).then(function () {
+      /* scene 3: attach train */
+      return flashKey("Enter", 520);
+    }).then(function () {
+      remotePane.classList.remove("dim");
+      navPane.classList.remove("focused");
+      paneTitle.textContent = "gpu / vscode-02 · session train";
+      paneBody.innerHTML = '<span class="m">Connecting to gpu / vscode-02 · tmux train…</span>';
+      return wait(reduced ? 0 : 900);
+    }).then(function () {
+      paneBody.innerHTML = "";
+      return typeCommand("tmux attach-session -t train");
+    }).then(function () {
+      return wait(reduced ? 0 : 650);
+    }).then(function () {
+      paneBody.innerHTML = "";
+      return streamLines(CODEX_STREAM, 500);
+    }).then(function () {
+      return wait(reduced ? 0 : 2400);
+    }).then(function () {
+      /* scene 4: back to sidebar, hand off eval to a tab */
+      return flashKey("Shift+←", 560);
+    }).then(function () {
+      remotePane.classList.add("dim");
+      navPane.classList.add("focused");
+      renderRows(3);
+      return flashKey("o", 480);
+    }).then(function () {
+      toast.classList.add("show");
+      paneTitle.textContent = "gpu / vscode-02 · session eval (tab)";
+      paneBody.innerHTML = '<div class="idle-ph"><span class="big">REMOTE TMUX HANDED OFF</span>' +
+        "gpu / vscode-02 · session eval<br><br>" +
+        '<span class="m">This session is active in its standalone iTerm tab.</span></div>';
+      return wait(reduced ? 0 : 2300);
+    }).then(function () {
+      toast.classList.remove("show");
+      return wait(500);
+    }).then(function () {
+      if (!reduced) return runDemo();
+    });
+  }
+
+  if (document.visibilityState !== "prerender") {
+    runDemo();
+  } else {
+    document.addEventListener("visibilitychange", function once() {
+      document.removeEventListener("visibilitychange", once);
+      runDemo();
+    });
+  }
+})();
+</script>
+</body>
+</html>

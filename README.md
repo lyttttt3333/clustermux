@@ -1,4 +1,15 @@
-# clustermux
+<div align="center">
+  <img src="docs/assets/clustermux-logo.png" width="110" alt="clustermux logo">
+  <h1>clustermux</h1>
+  <p><strong>One terminal. Every cluster.</strong></p>
+  <p>A dependency-free TUI for tmux sessions spread across SSH hosts</p>
+  <p>
+    <a href="https://lyttttt3333.github.io/clustermux/">Live demo</a> ·
+    <a href="#install">Install</a> ·
+    <a href="#usage">Usage</a>
+  </p>
+  <img src="docs/assets/clustermux-hero.jpg" alt="clustermux — one workstation driving tmux agent sessions across a fleet of SSH hosts">
+</div>
 
 A small, dependency-free TUI for managing **tmux sessions spread across SSH hosts** — HPC login nodes, cloud dev boxes, GPU clusters — from a single terminal window.
 
@@ -121,6 +132,8 @@ Inside an attached remote tmux session, the remote prefix is `Ctrl-b` as usual; 
 `↑↓` select · `Enter` attach here · `t` new tab · `r` refresh · `p` preview · `q` quit
 
 ## How it works
+
+<img src="docs/assets/architecture.svg" alt="clustermux architecture: a local navigator driving remote tmux sessions over SSH">
 
 - Discovery runs `tmux list-panes -a` on every host in parallel over SSH and parses a sentinel-separated format that survives older remote tmux builds.
 - Attaching creates (or reuses) a hidden window in the local `clustermux` tmux session running a supervised `ssh -t host tmux attach-session ...`; the pane is swapped into the visible slot. Killing the workspace only disconnects local SSH clients — remote sessions and their processes keep running.
