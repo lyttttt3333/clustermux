@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clustermux"
+version = "0.1.0"
+description = "A dependency-free TUI for tmux sessions spread across SSH hosts"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+authors = [{ name = "Yitong Li" }]
+keywords = ["tmux", "ssh", "cluster", "tui", "terminal", "hpc"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console :: Curses",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Terminals",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/lyttttt3333/clustermux"
+Repository = "https://github.com/lyttttt3333/clustermux"
+Issues = "https://github.com/lyttttt3333/clustermux/issues"
+
+[project.scripts]
+clustermux = "clustermux:main"
+
+[tool.hatch.build.targets.wheel]
+include = ["clustermux.py"]
+
+[tool.hatch.build.targets.sdist]
+include = ["clustermux.py", "README.md", "LICENSE", "examples/hosts.json"]

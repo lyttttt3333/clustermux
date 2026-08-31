@@ -1,0 +1,18 @@
+[
+  {
+    "group": "GPU",
+    "label": "login-01",
+    "target": "me@gpu-login-01.example.com"
+  },
+  {
+    "group": "GPU",
+    "label": "dev-01",
+    "target": "gpu-dev-01",
+    "connect_timeout": 20
+  },
+  {
+    "group": "CPU",
+    "label": "login",
+    "target": "me@cpu-login.example.com"
+  }
+]
