@@ -5,6 +5,7 @@ import argparse
 import base64
 import concurrent.futures
 import curses
+import glob
 import json
 import locale
 import os
@@ -22,7 +23,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 DEFAULT_CONFIG = Path.home() / ".config" / "clustermux" / "hosts.json"
 WORKSPACE_SESSION = "clustermux"
@@ -323,7 +324,10 @@ def load_hosts(path: Path) -> List[Host]:
     try:
         data = json.loads(path.read_text())
     except FileNotFoundError:
-        raise SystemExit(f"clustermux: config not found: {path}")
+        raise SystemExit(
+            f"clustermux: config not found: {path}\n"
+            "Run 'clustermux --init' to scan your SSH setup and create one interactively."
+        )
     except (OSError, json.JSONDecodeError) as exc:
         raise SystemExit(f"clustermux: cannot read {path}: {exc}")
     if not isinstance(data, list) or not data:
@@ -1992,12 +1996,376 @@ def print_list(hosts: Sequence[Host], timeout: int) -> int:
     return 0
 
 
+def ask_yes_no(question: str, default: bool = True) -> bool:
+    suffix = " [Y/n] " if default else " [y/N] "
+    try:
+        answer = input(question + suffix).strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return False
+    return default if not answer else answer in ("y", "yes")
+
+
+def ask_text(prompt: str, default: str = "") -> str:
+    suffix = f" [{default}]" if default else ""
+    try:
+        answer = input(f"{prompt}{suffix}: ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return ""
+    return answer or default
+
+
+def find_public_key() -> Optional[Path]:
+    for name in ("id_ed25519.pub", "id_ecdsa.pub", "id_rsa.pub", "id_dsa.pub"):
+        candidate = Path.home() / ".ssh" / name
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def generate_ssh_key() -> Optional[Path]:
+    key_path = Path.home() / ".ssh" / "id_ed25519"
+    print("Running ssh-keygen — choose a passphrase, or press Enter twice for none.")
+    result = subprocess.run(["ssh-keygen", "-t", "ed25519", "-f", str(key_path)], check=False)
+    return find_public_key() if result.returncode == 0 else None
+
+
+def install_key_on_host(target: str, pubkey: Path) -> bool:
+    if shutil.which("ssh-copy-id"):
+        return subprocess.run(["ssh-copy-id", "-i", str(pubkey), target], check=False).returncode == 0
+    remote = (
+        "mkdir -p ~/.ssh && chmod 700 ~/.ssh && "
+        "cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+    )
+    try:
+        key_text = pubkey.read_text().strip() + "\n"
+    except OSError:
+        return False
+    return subprocess.run(["ssh", target, remote], input=key_text, text=True, check=False).returncode == 0
+
+
+def ssh_config_files() -> List[Path]:
+    """The user ssh_config plus any files pulled in via Include directives."""
+    found: List[Path] = []
+
+    def visit(path: Path, depth: int) -> None:
+        if depth > 4 or path in found:
+            return
+        found.append(path)
+        try:
+            lines = path.read_text().splitlines()
+        except OSError:
+            return
+        for line in lines:
+            stripped = line.strip()
+            if stripped.lower().startswith("include "):
+                for pattern in stripped.split()[1:]:
+                    if pattern.startswith("~"):
+                        pattern = str(Path.home()) + pattern[1:]
+                    candidate = Path(pattern)
+                    if not candidate.is_absolute():
+                        candidate = path.parent / candidate
+                    for match in sorted(glob.glob(str(candidate))):
+                        visit(Path(match), depth + 1)
+
+    visit(Path.home() / ".ssh" / "config", 0)
+    return found
+
+
+def discover_ssh_aliases() -> List[str]:
+    """Concrete Host aliases from ssh config; wildcard and negated patterns are skipped."""
+    aliases: List[str] = []
+    for path in ssh_config_files():
+        try:
+            lines = path.read_text().splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            parts = stripped.split()
+            if parts[0].lower() != "host":
+                continue
+            for pattern in parts[1:]:
+                if any(mark in pattern for mark in "*?!"):
+                    continue
+                if pattern not in aliases:
+                    aliases.append(pattern)
+    return aliases
+
+
+def discover_known_hosts() -> List[str]:
+    """Plain-text hostnames from known_hosts; hashed entries cannot be recovered."""
+    hosts: List[str] = []
+    try:
+        lines = (Path.home() / ".ssh" / "known_hosts").read_text().splitlines()
+    except OSError:
+        return hosts
+    for line in lines:
+        if not line or line[0] in "#@|":
+            continue
+        for token in line.split(" ", 1)[0].split(","):
+            token = token.strip()
+            if not token:
+                continue
+            bracketed = re.fullmatch(r"\[([^\]]+)\]:\d+", token)
+            name = bracketed.group(1) if bracketed else token
+            if re.fullmatch(r"[A-Za-z0-9_.-]+", name) and name not in hosts:
+                hosts.append(name)
+    return hosts
+
+
+def resolve_alias(alias: str) -> str:
+    """Resolve an ssh config alias to user@hostname for display and dedup."""
+    try:
+        result = subprocess.run(
+            ["ssh", "-G", alias], capture_output=True, text=True, timeout=10, check=False
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return ""
+    user = hostname = ""
+    for line in result.stdout.splitlines():
+        key, _, value = line.partition(" ")
+        if key == "user":
+            user = value.strip()
+        elif key == "hostname":
+            hostname = value.strip()
+    if not hostname:
+        return ""
+    return f"{user}@{hostname}" if user else hostname
+
+
+def probe_ssh_target(target: str, timeout: int = 6) -> str:
+    """Classify BatchMode SSH reachability: ok / auth (key rejected) / unreachable."""
+    try:
+        result = subprocess.run(
+            [
+                "ssh",
+                "-o", "BatchMode=yes",
+                "-o", f"ConnectTimeout={timeout}",
+                "-o", "LogLevel=ERROR",
+                target,
+                "true",
+            ],
+            capture_output=True,
+            text=True,
+            # ConnectTimeout only bounds TCP setup; slow links can need much
+            # longer for the handshake and auth negotiation to finish.
+            timeout=timeout + 20,
+            check=False,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return "unreachable"
+    if result.returncode == 0:
+        return "ok"
+    return "auth" if "permission denied" in result.stderr.lower() else "unreachable"
+
+
+def default_group_label(target: str) -> Tuple[str, str]:
+    alias = target.split("@", 1)[-1]
+    head, separator, tail = alias.partition("-")
+    if separator and head and tail:
+        return head.split(".")[0].upper()[:16], tail.split(".")[0][:24]
+    return alias.split(".")[0].upper()[:16], "login"
+
+
+def cmd_init(config_path: Path, timeout: int) -> int:
+    print("clustermux init — scan your SSH setup and build a hosts file\n")
+
+    print("[1/5] SSH key")
+    pubkey = find_public_key()
+    if pubkey:
+        print(f"  Using existing key: {pubkey}")
+    else:
+        print("  No SSH key found in ~/.ssh (id_ed25519.pub, id_ecdsa.pub, id_rsa.pub).")
+        if ask_yes_no("  Generate a new ed25519 key now?"):
+            pubkey = generate_ssh_key()
+        if pubkey is None:
+            print("  WARNING: without a key, hosts that need one will not connect.")
+
+    print("\n[2/5] Discover hosts")
+    existing: List[dict] = []
+    existing_targets = set()
+    if config_path.exists():
+        try:
+            data = json.loads(config_path.read_text())
+            if isinstance(data, list):
+                for item in data:
+                    if isinstance(item, dict) and item.get("target"):
+                        existing.append(item)
+                        existing_targets.add(str(item["target"]))
+            print(f"  Existing config: {len(existing)} host(s) — new discoveries will be merged in.")
+        except (OSError, json.JSONDecodeError):
+            print(f"  WARNING: existing {config_path} is not valid JSON; it will be backed up.")
+
+    discovered: List[Tuple[str, str]] = []
+    for alias in discover_ssh_aliases():
+        discovered.append((alias, "ssh config"))
+    resolved_hostnames = set()
+    for alias, _source in discovered:
+        resolved = resolve_alias(alias)
+        if resolved:
+            resolved_hostnames.add(resolved.split("@", 1)[-1])
+    alias_targets = {target for target, _ in discovered}
+    for name in discover_known_hosts():
+        if name not in resolved_hostnames and name not in alias_targets:
+            discovered.append((name, "known_hosts"))
+    new_discoveries = [item for item in discovered if item[0] not in existing_targets]
+    if not discovered:
+        print("  No Host entries in ssh config and no usable known_hosts entries.")
+    else:
+        print(f"  Found {len(discovered)} candidate(s), {len(new_discoveries)} not yet in the config.")
+
+    print("\n[3/5] Probe connectivity (BatchMode, in parallel)")
+    statuses: List[str] = []
+    if new_discoveries:
+        workers = min(16, len(new_discoveries))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+            statuses = list(pool.map(lambda item: probe_ssh_target(item[0], timeout), new_discoveries))
+        marks = {"ok": "ok  ", "auth": "auth", "unreachable": "down"}
+        for (target, source), status in zip(new_discoveries, statuses):
+            note = " — from known_hosts, verify the username" if source == "known_hosts" else ""
+            print(f"  [{marks[status]}] {target}{note}")
+    else:
+        print("  Nothing new to probe.")
+
+    print("\n[4/5] Key installation")
+    auth_hosts = [target for (target, _), status in zip(new_discoveries, statuses) if status == "auth"]
+    if not auth_hosts:
+        print("  Every reachable host already accepts your key.")
+    elif pubkey is None:
+        print(f"  {len(auth_hosts)} host(s) reject key auth, but you have no key to install.")
+    else:
+        for index, (target, _source) in enumerate(new_discoveries):
+            if statuses[index] != "auth":
+                continue
+            if ask_yes_no(f"  {target} rejects your key. Install it (you will be asked for the password)?"):
+                if install_key_on_host(target, pubkey):
+                    statuses[index] = probe_ssh_target(target, timeout)
+                    print(f"  Key installed on {target}." if statuses[index] == "ok" else f"  Installed, but {target} still does not connect.")
+                else:
+                    print(f"  Key installation failed on {target}.")
+
+    print(f"\n[5/5] Write {config_path}")
+    entries = list(existing)
+    for (target, _source), status in zip(new_discoveries, statuses):
+        if status == "auth":
+            include = ask_yes_no(f"  {target} still rejects your key; include it anyway?", default=False)
+        elif status != "ok":
+            include = ask_yes_no(f"  {target} is not reachable now; include it anyway?", default=False)
+        else:
+            include = True
+        if not include:
+            continue
+        group, label = default_group_label(target)
+        entries.append({"group": group, "label": label, "target": target})
+        print(f"  + {group} / {label}  ({target})")
+    while ask_yes_no("  Add another host manually?", default=False):
+        target = ask_text("  SSH target (alias or user@host)")
+        if not target or target in {entry["target"] for entry in entries}:
+            continue
+        group, label = default_group_label(target)
+        entries.append({
+            "group": ask_text("  Group", group),
+            "label": ask_text("  Label", label),
+            "target": target,
+        })
+    if not entries:
+        print("Nothing to write — no hosts selected.")
+        return 1
+
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    if config_path.exists():
+        backup = config_path.with_suffix(".json.bak")
+        backup.write_text(config_path.read_text())
+        print(f"  Previous config backed up to {backup}")
+    config_path.write_text(json.dumps(entries, indent=2) + "\n")
+    print(f"  Wrote {len(entries)} host(s) to {config_path}")
+
+    editor = os.environ.get("EDITOR")
+    if editor and ask_yes_no(f"  Review it in {editor} now?", default=False):
+        subprocess.run([editor, str(config_path)], check=False)
+    try:
+        load_hosts(config_path)
+    except SystemExit as exc:
+        print(f"  WARNING: {exc}")
+        return 1
+    print("\nDone. Next: clustermux --check  ·  clustermux")
+    return 0
+
+
+def cmd_check(config_path: Path, timeout: int) -> int:
+    failures = 0
+
+    def report(good: bool, label: str, hint: str = "") -> None:
+        nonlocal failures
+        print(f"  [{'ok' if good else 'FAIL'}] {label}" + (f" — {hint}" if hint and not good else ""))
+        if not good:
+            failures += 1
+
+    print("Local environment")
+    py = sys.version_info
+    report(py >= (3, 9), f"Python {py.major}.{py.minor}.{py.micro}", "clustermux needs Python >= 3.9")
+    tmux = shutil.which("tmux")
+    if tmux:
+        version = subprocess.run(["tmux", "-V"], capture_output=True, text=True, check=False).stdout.strip()
+        report(True, f"tmux ({version or 'found'})")
+    else:
+        report(False, "tmux not found", "brew install tmux / apt install tmux")
+    report(shutil.which("ssh") is not None, "ssh client")
+    if sys.platform == "darwin":
+        iterm = Path("/Applications/iTerm.app").is_dir() or (Path.home() / "Applications" / "iTerm.app").is_dir()
+        report(iterm, "iTerm2 (needed for tab features)", "install from https://iterm2.com, or use --workspace/--here")
+    report(find_public_key() is not None, "SSH key present", "run clustermux --init to create one")
+
+    print("\nConfiguration")
+    hosts: List[Host] = []
+    if not config_path.exists():
+        report(False, f"{config_path} missing", "run clustermux --init")
+    else:
+        try:
+            hosts = load_hosts(config_path)
+            report(True, f"{config_path} — {len(hosts)} host(s)")
+        except SystemExit as exc:
+            report(False, str(exc))
+
+    if hosts:
+        print("\nRemote hosts")
+        for snapshot in query_all(hosts, timeout):
+            if snapshot.status == "online":
+                latency = f", {snapshot.latency:.1f}s" if snapshot.latency is not None else ""
+                print(f"  [ok  ] {snapshot.host.display_name} — {len(snapshot.sessions)} session(s){latency}")
+            elif snapshot.status == "empty":
+                print(f"  [ok  ] {snapshot.host.display_name} — reachable, no tmux sessions")
+            else:
+                print(f"  [warn] {snapshot.host.display_name} — {snapshot.status}: {snapshot.error}")
+        print("\nOffline hosts do not fail the check; they may simply be down.")
+
+    if failures:
+        print(f"\n{failures} problem(s) found.")
+        return 1
+    print("\nAll checks passed.")
+    return 0
+
+
 def parse_args(argv: Optional[Sequence[str]] = None):
     parser = argparse.ArgumentParser(
         description="Manage tmux sessions across SSH hosts without replacing the current terminal tab."
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG, help="host JSON file")
+    parser.add_argument(
+        "--init",
+        action="store_true",
+        help="first-time setup: scan ssh config/known_hosts, install your key, write the hosts file",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="verify local requirements and probe every configured host, then exit",
+    )
     parser.add_argument("--list", action="store_true", help="print one snapshot without starting the TUI")
     parser.add_argument("--here", action="store_true", help="run the full-screen preview in this terminal")
     parser.add_argument("--workspace", action="store_true", help="run the split navigator/terminal workspace here")
@@ -2034,6 +2402,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return run_handoff_pane(*args.pane_handoff)
     if args.shell_only:
         return run_shell_pane(*args.shell_only)
+    if args.init:
+        return cmd_init(args.config, args.timeout)
+    if args.check:
+        return cmd_check(args.config, args.timeout)
     hosts = load_hosts(args.config)
     if args.list:
         return print_list(hosts, args.timeout)
