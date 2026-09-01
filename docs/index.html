@@ -115,7 +115,7 @@
   h2 { font-size: clamp(24px, 3.6vw, 34px); margin: 10px 0 14px; letter-spacing: .5px; }
   .section-sub { color: var(--muted); max-width: 680px; font-size: 15px; }
 
-  /* ---------- demo terminal (dashboard replica) ---------- */
+  /* ---------- demo: workspace replica (navigator + remote pane) ---------- */
   .term-window {
     margin-top: 38px;
     background: var(--panel);
@@ -133,67 +133,54 @@
   .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
   .term-chrome .tab-title { margin-left: 10px; font-size: 12.5px; color: var(--muted); }
 
-  .tui-wrap { position: relative; }
-  .tui { font-size: 12.8px; }
-  .tui-header {
+  .ws { display: grid; grid-template-columns: 258px 1fr; min-height: 460px; }
+  @media (max-width: 720px) { .ws { grid-template-columns: 185px 1fr; } }
+  .ws-side { background: #0a0f1d; border-right: 1px solid var(--border); display: flex; flex-direction: column; min-width: 0; }
+  .ws-side-header {
     background: var(--cyan-dim); color: #04121a; font-weight: 700;
-    padding: 4px 14px; letter-spacing: .5px; font-size: 12.5px;
+    padding: 6px 12px; font-size: 11.5px; letter-spacing: .5px; white-space: nowrap;
   }
-  .tui-summary { color: var(--muted); padding: 3px 14px; font-size: 12px; min-height: 22px; }
-  .tui-main {
-    display: grid; grid-template-columns: 225px 1px 1fr;
-    min-height: 400px; padding: 6px 0 10px;
+  .ws-side-status {
+    color: var(--muted); font-size: 11.5px; padding: 5px 12px; min-height: 25px;
+    border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden;
   }
-  @media (max-width: 720px) { .tui-main { grid-template-columns: 165px 1px 1fr; } }
-  .tui-divider { background: var(--border); }
-  .tui-pane-title { font-weight: 700; padding: 4px 12px; color: var(--text); font-size: 12px; }
-  .tui-pane-title.accent { color: var(--amber); }
-  .tui-nodes { border-top: 1px solid var(--border); }
-  .tui-right { display: flex; flex-direction: column; min-width: 0; }
-  .tui-sessions { border-top: 1px solid var(--border); padding-bottom: 6px; }
-  .tui-preview { border-top: 1px solid var(--border); flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  .tui-preview-path { color: var(--muted); padding: 0 12px 4px; font-size: 11.5px; }
-  .tui-preview-body {
-    padding: 2px 12px 8px; font-size: 12.2px; line-height: 1.5; color: #c9d1d9;
-    white-space: pre-wrap; word-break: break-word; overflow: hidden; flex: 1;
-    font-family: var(--mono);
-  }
-  .row { padding: 1.5px 12px; white-space: nowrap; color: var(--muted); display: flex; gap: 7px; }
-  .row .count { margin-left: auto; }
-  .row.cursor { background: #e6edf3; color: #0d1117; border-radius: 2px; font-weight: 600; }
-  .row.cursor .count, .row.cursor .st, .row.cursor .cmd { color: #0d1117; }
+  .ws-tree { padding: 7px 0; flex: 1; font-size: 12.5px; }
+  .trow { padding: 2px 12px; white-space: nowrap; color: var(--muted); display: flex; gap: 7px; overflow: hidden; }
+  .trow.host { color: var(--text); font-weight: 600; }
+  .trow.sess { padding-left: 25px; font-weight: 400; }
+  .trow .count { margin-left: auto; padding-left: 8px; }
+  .trow .cmd { color: var(--muted); font-weight: 400; }
+  .trow.cursor { background: #e6edf3; color: #0d1117; border-radius: 2px; font-weight: 600; }
+  .trow.cursor .count, .trow.cursor .cmd, .trow.cursor .st { color: #0d1117; }
   .st.ok { color: var(--green); } .st.down { color: var(--red); } .st.load { color: var(--muted); }
-  .row .cmd { color: var(--muted); font-weight: 400; }
-  .row.cursor .path { color: #0d1117; }
-  .row .path { overflow: hidden; text-overflow: ellipsis; }
-  .tui-footer {
-    background: #1a3a5c; color: #dbe9f5; font-size: 11.5px;
-    padding: 5px 14px; display: flex; justify-content: space-between; gap: 16px;
-    min-height: 26px; align-items: center;
+  .ws-side-footer {
+    border-top: 1px solid var(--border); padding: 8px 12px; font-size: 11px;
+    color: var(--muted); min-height: 58px; line-height: 1.5;
   }
-  .tui-footer .footer-msg { color: #ffe9a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tui-footer .keys-hint { white-space: nowrap; overflow: hidden; }
-  @media (max-width: 720px) { .tui-footer .keys-hint { display: none; } }
-  .tui-footer .prompt-label { font-weight: 700; }
+  .ws-side-footer .accent { color: var(--cyan); }
+  .ws-side-footer .prompt-label { color: var(--text); font-weight: 700; }
+
+  .ws-main { display: flex; flex-direction: column; min-width: 0; transition: opacity .3s; }
+  .ws-main.dim { opacity: .5; }
+  .ws-pane-title {
+    padding: 6px 14px; font-size: 11.5px; color: var(--muted);
+    border-bottom: 1px solid var(--border); background: var(--panel-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ws-pane-body {
+    flex: 1; padding: 14px 16px; font-size: 12.6px; line-height: 1.58;
+    white-space: pre-wrap; word-break: break-word; overflow: hidden; color: #c9d1d9;
+  }
+  .ws-statusbar {
+    background: #1a3a5c; color: #dbe9f5; font-size: 11.5px;
+    padding: 5px 14px; display: flex; justify-content: space-between;
+  }
+  .idle-ph { text-align: center; padding-top: 140px; color: var(--muted); font-size: 12.5px; }
+  .idle-ph .big { color: var(--text); font-weight: 700; font-size: 13.5px; display: block; margin-bottom: 10px; }
   .caret { display: inline-block; width: 8px; height: 14px; background: var(--cyan); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
-  .g { color: var(--green); } .c { color: var(--cyan); } .m { color: var(--muted); } .y { color: var(--amber); }
-
-  /* attach overlay: full-window remote tmux */
-  .attach-overlay {
-    position: absolute; inset: 0; background: #05080f; z-index: 4;
-    display: flex; flex-direction: column;
-  }
-  .attach-overlay.hidden { display: none; }
-  .attach-body {
-    flex: 1; padding: 16px 18px; font-size: 12.8px; line-height: 1.6;
-    white-space: pre-wrap; word-break: break-word; overflow: hidden; color: #c9d1d9;
-    font-family: var(--mono);
-  }
-  .attach-status {
-    background: #3fb950; color: #04120a; font-size: 11.5px; font-weight: 600;
-    padding: 4px 14px; display: flex; justify-content: space-between;
-  }
+  .g { color: var(--green); } .c { color: var(--cyan); } .m { color: var(--muted); }
+  .y { color: var(--amber); } .r { color: var(--red); }
 
   .keycap {
     position: absolute; right: 18px; bottom: 44px; z-index: 6;
@@ -311,45 +298,26 @@
   <div class="wrap">
     <span class="kicker">Live demo</span>
     <h2>What it looks like</h2>
-    <p class="section-sub">A scripted replay of the real TUI: preview a long-running Codex session, drop straight into it, then rename and fork sessions — never a manual tmux command.</p>
+    <p class="section-sub">A scripted replay of the real workspace: sessions live under their clusters on the left — drop into a long-running Codex conversation, rename it, fork it. Never a manual tmux command.</p>
 
     <div class="term-window" id="termWindow">
       <div class="term-chrome">
         <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-        <span class="tab-title">clustermux --here</span>
+        <span class="tab-title">CLUSTERMUX — iTerm2</span>
       </div>
-      <div class="tui-wrap">
-        <div class="tui">
-          <div class="tui-header">&nbsp;CLUSTERMUX &nbsp;·&nbsp; GPU+CPU+EDGE</div>
-          <div class="tui-summary" id="tuiSummary">&nbsp;</div>
-          <div class="tui-main">
-            <div class="tui-nodes">
-              <div class="tui-pane-title">NODES</div>
-              <div id="nodeRows"></div>
-            </div>
-            <div class="tui-divider"></div>
-            <div class="tui-right">
-              <div class="tui-sessions">
-                <div class="tui-pane-title" id="sessTitle">SESSIONS</div>
-                <div id="sessRows"></div>
-              </div>
-              <div class="tui-preview">
-                <div class="tui-pane-title accent" id="prevTitle">REMOTE PREVIEW</div>
-                <div class="tui-preview-path" id="prevPath"></div>
-                <pre class="tui-preview-body" id="prevBody"></pre>
-              </div>
-            </div>
-          </div>
-          <div class="tui-footer" id="tuiFooter">
-            <span class="keys-hint">↑↓ select &nbsp; Enter attach here &nbsp; t new tab &nbsp; r refresh &nbsp; p preview &nbsp; q quit</span>
-            <span class="footer-msg" id="footerMsg"></span>
-          </div>
+      <div class="ws">
+        <div class="ws-side">
+          <div class="ws-side-header">CLUSTERMUX · NAVIGATOR</div>
+          <div class="ws-side-status" id="sideStatus">&nbsp;</div>
+          <div class="ws-tree" id="treeRows"></div>
+          <div class="ws-side-footer" id="sideFooter"></div>
         </div>
-        <div class="attach-overlay hidden" id="attachOverlay">
-          <div class="attach-body" id="attachBody"></div>
-          <div class="attach-status"><span>[train] 0:codex*</span><span>gpu/vscode-02</span></div>
+        <div class="ws-main dim" id="wsMain">
+          <div class="ws-pane-title" id="wsPaneTitle">Remote tmux</div>
+          <div class="ws-pane-body" id="wsPaneBody"><div class="idle-ph"><span class="big">CLUSTERMUX · REMOTE TERMINAL</span>Choose a cluster or tmux session on the left.<br><br><span class="m">Cluster: b Bash / t tmux&nbsp;&nbsp;&nbsp;&nbsp;Session: Enter / f fork / x kill</span></div></div>
         </div>
       </div>
+      <div class="ws-statusbar"><span>&nbsp;CLUSTERMUX</span><span>Shift+Left: sidebar · remote tmux: C-b&nbsp;</span></div>
       <div class="keycap" id="keycap">↓</div>
       <div class="toast" id="toast"></div>
     </div>
@@ -363,11 +331,11 @@
     <p class="section-sub">Long-running agents on remote GPUs shouldn't die with your laptop lid. clustermux keeps every session visible and one keystroke away.</p>
     <div class="features">
       <div class="feature"><div class="glyph">◈</div><h3>Parallel discovery</h3><p>One dashboard for every host — reachability, latency, running command and working directory, queried over SSH at once.</p></div>
-      <div class="feature"><div class="glyph">▤</div><h3>Live previews</h3><p>Peek at any session's recent output before attaching — find the right agent without hopping between machines.</p></div>
       <div class="feature"><div class="glyph">⇄</div><h3>Persistent connections</h3><p>Each attached session lives in a hidden local tmux window. Detach, re-attach, switch hosts — the remote work never notices.</p></div>
       <div class="feature"><div class="glyph">⧉</div><h3>iTerm2 handoff</h3><p>Promote any session to its own tab with <b>o</b>. The tab supervises the SSH link and auto-reconnects after network drops.</p></div>
       <div class="feature"><div class="glyph">⑂</div><h3>Fork running agents</h3><p>Clone a live Codex session into a new tmux with <b>f</b> — clustermux finds the active rollout thread via /proc and runs codex fork.</p></div>
       <div class="feature"><div class="glyph">✓</div><h3>One-command setup</h3><p><b>clustermux --init</b> scans your SSH config, installs your key where it's rejected, and writes the hosts file. <b>--check</b> verifies it all.</p></div>
+      <div class="feature"><div class="glyph">∅</div><h3>Zero dependencies</h3><p>A single Python file on the standard library. No pip packages, no daemons, nothing running on the remote hosts but tmux.</p></div>
     </div>
   </div>
 </section>
@@ -462,329 +430,325 @@
     });
   });
 
-  /* ---------- demo data ---------- */
-  function freshNodes() {
+  /* ---------- demo data: sessions nested under their clusters ---------- */
+  function freshTree() {
     return [
-      { group: "gpu",  label: "login-01",  status: "online", latency: "0.4s", sessions: [] },
-      { group: "gpu",  label: "vscode-02", status: "online", latency: "0.6s", sessions: [
-        { name: "train",  cmd: "codex", path: "…/code/mission-control", attached: true },
-        { name: "eval",   cmd: "codex", path: "…/code/h3-nvfp4-recovery" },
-        { name: "squeue", cmd: "watch", path: "/home/moe" }
+      { group: "gpu",  label: "login-01",  up: true,  sessions: [
+        { name: "h3-train",  cmd: "bash" }
       ]},
-      { group: "cpu",  label: "login",     status: "empty",  latency: "1.2s", sessions: [] },
-      { group: "edge", label: "dev",       status: "offline", latency: null,  sessions: [] }
+      { group: "gpu",  label: "vscode-02", up: true,  sessions: [
+        { name: "cache-fix", cmd: "codex", attached: true },
+        { name: "eval-h3",   cmd: "codex" }
+      ]},
+      { group: "cpu",  label: "login",     up: true,  sessions: [
+        { name: "squeue",    cmd: "watch" }
+      ]},
+      { group: "edge", label: "dev",       up: false, sessions: [] }
     ];
   }
 
-  var PREVIEWS = {
-    "train": [
-      '<span class="y">›</span> shard the cache writer, keep the training loop untouched',
-      '<span class="c">●</span> Read src/cache/{writer,shard,io}.py <span class="m">— 12 files, 8.1k lines</span>',
-      '<span class="c">●</span> Plan: chunked writer + fsync barrier per shard',
-      '<span class="g">✓</span> patch v1 applied <span class="m">(+214 −96)</span>',
-      '<span class="g">✓</span> tests: 118 passed, 0 failed',
-      '<span class="g">✓</span> smoke step: loss 2.314 → 2.301',
-      '<span class="c">●</span> watching GPU 0-7 … util 97%',
-      '<span class="m">tokens 84.2k · ctx 41%</span>'
-    ],
-    "eval": [
-      '<span class="y">›</span> compare nvfp4 vs fp8 perplexity on h3',
-      '<span class="g">✓</span> eval harness ready <span class="m">(3 tasks)</span>',
-      '<span class="y">▸</span> running fp4 pass … 62%',
-      '<span class="m">tokens 12.0k · ctx 9%</span>'
-    ],
-    "squeue": [
-      'Every 2s: squeue -u moe',
-      '',
-      '  JOBID  PARTITION  NAME       ST  TIME   NODES',
-      '  48211  gpu        h3-train   R    14:02  8',
-      '  48212  gpu        h3-eval    R    01:47  1'
-    ]
-  };
-
-  var ATTACH_LINES = [
-    '<span class="m">╭─</span> <span class="c">codex</span> <span class="m">· gpt-5.3-codex · ~/code/mission-control</span>',
+  /* A realistic, readable Codex debugging session (scrollback of a long chat) */
+  var CODEX_HISTORY = [
+    '<span class="m">╭──────────────────────────────────────────────────╮',
+    '│  <span class="c">&gt;_ OpenAI Codex</span> <span class="m">v0.31.0 · gpt-5.3-codex · ~/code/mission-control</span>',
+    '╰──────────────────────────────────────────────────╯</span>',
     '',
-    '<span class="y">›</span> shard the cache writer, keep the training loop untouched',
-    '<span class="c">●</span> Read src/cache/{writer,shard,io}.py <span class="m">— 12 files, 8.1k lines</span>',
-    '<span class="c">●</span> Plan: chunked writer + fsync barrier per shard',
-    '<span class="g">✓</span> patch v1 applied <span class="m">(+214 −96)</span>',
-    '<span class="g">✓</span> tests: 118 passed, 0 failed',
-    '<span class="y">›</span> run a smoke step',
-    '<span class="g">✓</span> loss 2.314 → 2.301 — no regression',
-    '<span class="y">›</span> ship it',
-    '<span class="c">●</span> preparing commit…',
-    '<span class="g">✓</span> commit 9f3a2c1 <span class="m">— cache: shard the writer</span>',
+    '<span class="y">›</span> The cache writer deadlocks when two shards flush at',
+    '  the same time. Find the root cause and fix it.',
     '',
-    '<span class="m">tokens 91.7k · ctx 44% · session train · esc to interrupt</span>'
+    '<span class="c">•</span> Thinking… <span class="m">34s</span>',
+    '<span class="c">•</span> Read src/cache/writer.py <span class="m">(lines 140-210)</span>',
+    '<span class="c">•</span> Read src/cache/shard.py <span class="m">(lines 60-118)</span>',
+    '<span class="c">•</span> Root cause: flush() holds g_lock, then waits on',
+    '  shard.lock — while evict() holds shard.lock and asks',
+    '  for g_lock. A classic AB-BA deadlock.',
+    '',
+    '<span class="c">•</span> Edit src/cache/writer.py <span class="m">(+18 −9)</span>',
+    '<span class="m">148</span> <span class="r">- with g_lock:</span>',
+    '<span class="m">149</span> <span class="r">-     shard.flush()</span>',
+    '<span class="m">148</span> <span class="g">+ shard.prepare_flush()</span>',
+    '<span class="m">149</span> <span class="g">+ with g_lock:</span>',
+    '<span class="m">150</span> <span class="g">+     shard.commit_flush()</span>',
+    '',
+    '<span class="c">•</span> Run pytest tests/test_cache.py -x',
+    '  <span class="g">✓ 118 passed in 6.4s</span>',
+    '',
+    '<span class="y">›</span> Nice — commit it.',
+    '',
+    '<span class="c">•</span> Run git commit -m "cache: fix AB-BA deadlock"',
+    '  <span class="g">[main 9f3a2c1] 1 file changed, +18 −9</span>',
+    '',
+    '<span class="m">─ Worked for 1m 12s · tokens 91.7k · ctx 44% ──────</span>'
   ];
 
-  var nodeRows   = document.getElementById("nodeRows");
-  var sessTitle  = document.getElementById("sessTitle");
-  var sessRows   = document.getElementById("sessRows");
-  var prevTitle  = document.getElementById("prevTitle");
-  var prevPath   = document.getElementById("prevPath");
-  var prevBody   = document.getElementById("prevBody");
-  var tuiSummary = document.getElementById("tuiSummary");
-  var tuiFooter  = document.getElementById("tuiFooter");
-  var footerMsg  = document.getElementById("footerMsg");
-  var overlay    = document.getElementById("attachOverlay");
-  var attachBody = document.getElementById("attachBody");
+  /* what streams in live after we attach */
+  var CODEX_LIVE_USER = '› While you\'re here, add a regression test for the two-shard flush.';
+  var CODEX_LIVE_REPLY = [
+    '',
+    '<span class="c">•</span> Thinking… <span class="m">12s</span>',
+    '<span class="c">•</span> Edit tests/test_cache.py <span class="m">(+24 −0)</span>',
+    '<span class="c">•</span> Run pytest tests/test_cache.py -x',
+    '  <span class="g">✓ 119 passed in 6.6s</span>',
+    '',
+    '<span class="y">›</span> '
+  ];
+
+  var sideStatus = document.getElementById("sideStatus");
+  var treeRows   = document.getElementById("treeRows");
+  var sideFooter = document.getElementById("sideFooter");
+  var wsMain     = document.getElementById("wsMain");
+  var wsPaneTitle= document.getElementById("wsPaneTitle");
+  var wsPaneBody = document.getElementById("wsPaneBody");
   var keycap     = document.getElementById("keycap");
 
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var KEYS_HINT = '↑↓ select &nbsp; Enter attach here &nbsp; t new tab &nbsp; r refresh &nbsp; p preview &nbsp; q quit';
 
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   function esc(s) {
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  function marker(status) {
-    if (status === "online") return '<span class="st ok">●</span>';
-    if (status === "empty")  return '<span class="st ok">○</span>';
-    if (status === "offline") return '<span class="st down">×</span>';
-    return '<span class="st load">…</span>';
+  function flatRows(nodes) {
+    var rows = [];
+    nodes.forEach(function (h, hi) {
+      rows.push({ kind: "host", host: h });
+      h.sessions.forEach(function (s) {
+        rows.push({ kind: "session", host: h, session: s });
+      });
+    });
+    return rows;
   }
 
-  function renderNodes(nodes, cursor, focusHosts) {
-    nodeRows.innerHTML = nodes.map(function (n, i) {
-      var count = (n.status === "online" || n.status === "empty") ? String(n.sessions.length) : "–";
-      var cls = "row" + (focusHosts && i === cursor ? " cursor" : "");
-      return '<div class="' + cls + '">' + marker(n.status) + " " + esc(n.group) + "/" + esc(n.label) +
-        '<span class="count">' + count + "</span></div>";
+  function renderTree(nodes, cursor) {
+    treeRows.innerHTML = flatRows(nodes).map(function (row, i) {
+      var cls = i === cursor ? " cursor" : "";
+      if (row.kind === "host") {
+        var st = row.host.up
+          ? '<span class="st ok">●</span>'
+          : '<span class="st down">×</span>';
+        var count = row.host.up ? String(row.host.sessions.length) : "–";
+        return '<div class="trow host' + cls + '">' + st + " " + esc(row.host.group) + "/" + esc(row.host.label) +
+          '<span class="count">' + count + "</span></div>";
+      }
+      var mark = row.session.attached ? "◆" : " ";
+      return '<div class="trow sess' + cls + '">' + mark + " " + esc(row.session.name) +
+        '<span class="count"><span class="cmd">' + esc(row.session.cmd) + "</span></span></div>";
     }).join("");
   }
 
-  function renderSessions(nodes, hostIdx, cursor, focusSessions) {
-    var host = nodes[hostIdx];
-    sessTitle.textContent = "SESSIONS · " + host.group + " / " + host.label +
-      (host.latency ? " · " + host.latency : "");
-    if (host.status === "offline") {
-      sessRows.innerHTML = '<div class="row"><span class="st down">OFFLINE</span></div>' +
-        '<div class="row">connection timed out</div>';
-      return;
+  function footerFor(row) {
+    if (row && row.kind === "session") {
+      sideFooter.innerHTML =
+        '<span class="accent">Session:</span> Enter open · f fork · x kill<br>' +
+        'e rename · o handoff tab · r refresh';
+    } else {
+      sideFooter.innerHTML =
+        '<span class="accent">Cluster:</span> b Bash · t new tmux<br>' +
+        '↑↓ select · r refresh · q close';
     }
-    if (!host.sessions.length) {
-      sessRows.innerHTML = '<div class="row">Connected · no tmux sessions</div>';
-      return;
-    }
-    sessRows.innerHTML = host.sessions.map(function (s, i) {
-      var cls = "row" + (focusSessions && i === cursor ? " cursor" : "");
-      var mark = s.attached ? "◆" : " ";
-      return '<div class="' + cls + '">' + mark + " " + esc(s.name) +
-        '<span class="count"><span class="cmd">' + esc(s.cmd) + "</span>&nbsp; " +
-        '<span class="path">' + esc(s.path) + "</span></span></div>";
-    }).join("");
   }
 
-  function renderPreview(host, session) {
-    if (!session) {
-      prevTitle.textContent = "REMOTE PREVIEW";
-      prevPath.textContent = "";
-      prevBody.innerHTML = "";
-      return;
-    }
-    prevTitle.textContent = "REMOTE PREVIEW · " + host.group + " / " + host.label +
-      " · session " + session.name + " · " + session.cmd;
-    prevPath.textContent = session.path;
-    var lines = PREVIEWS[session.name] || ['<span class="m">(no recent output)</span>'];
-    prevBody.innerHTML = lines.join("\n");
-  }
-
-  function footerKeys(msg) {
-    tuiFooter.innerHTML = '<span class="keys-hint">' + KEYS_HINT + '</span>' +
-      '<span class="footer-msg">' + esc(msg || "") + "</span>";
-  }
-
-  function footerPrompt(label, typed, msg) {
-    tuiFooter.innerHTML = '<span><span class="prompt-label"> ' + esc(label) + " </span>" +
-      esc(typed) + '<span class="caret"></span></span>' +
-      '<span class="footer-msg">' + esc(msg || "") + "</span>";
+  function showPrompt(label, typed, msg) {
+    sideFooter.innerHTML = '<span class="prompt-label">' + esc(label) + "</span>" +
+      esc(typed) + '<span class="caret"></span>';
+    if (msg != null) sideStatus.textContent = msg;
   }
 
   function flashKey(label, ms) {
     keycap.textContent = label;
     keycap.classList.add("show");
     keycap.classList.add("press");
-    return wait(ms || 420).then(function () {
+    return wait(ms || 400).then(function () {
       keycap.classList.remove("press");
-      return wait(170);
+      return wait(160);
     }).then(function () {
       keycap.classList.remove("show");
     });
   }
 
-  function typeInto(label, text, msg, perChar) {
+  function typePrompt(label, text, msg, perChar) {
     var typed = "";
     var chain = Promise.resolve();
     text.split("").forEach(function (ch) {
       chain = chain.then(function () {
         typed += ch;
-        footerPrompt(label, typed, msg);
-        return wait(perChar || 70);
+        showPrompt(label, typed, msg);
+        return wait(perChar || 75);
       });
     });
     return chain;
   }
 
-  function streamInto(el, lines, delay) {
-    var out = "";
+  function streamLines(lines, delay) {
+    var out = wsPaneBody.innerHTML;
     var chain = Promise.resolve();
     lines.forEach(function (html) {
       chain = chain.then(function () {
         out += (out ? "\n" : "") + html;
-        el.innerHTML = out;
+        wsPaneBody.innerHTML = out;
         return wait(delay);
       });
     });
     return chain;
   }
 
+  function typeComposer(text) {
+    var typed = "";
+    var chain = Promise.resolve();
+    text.split("").forEach(function (ch) {
+      chain = chain.then(function () {
+        typed += ch;
+        var base = wsPaneBody.getAttribute("data-base") || "";
+        wsPaneBody.innerHTML = base + '<span class="y">›</span> ' + esc(typed) + '<span class="caret"></span>';
+        return wait(34 + Math.random() * 40);
+      });
+    });
+    return chain.then(function () {
+      var base = wsPaneBody.getAttribute("data-base") || "";
+      wsPaneBody.innerHTML = base + '<span class="y">›</span> ' + esc(text);
+      wsPaneBody.setAttribute("data-base", base + '<span class="y">›</span> ' + esc(text) + "\n");
+    });
+  }
+
   function totalSessions(nodes) {
     return nodes.reduce(function (n, h) { return n + h.sessions.length; }, 0);
   }
 
+  function showIdle() {
+    wsPaneTitle.textContent = "Remote tmux";
+    wsPaneBody.removeAttribute("data-base");
+    wsPaneBody.innerHTML = '<div class="idle-ph"><span class="big">CLUSTERMUX · REMOTE TERMINAL</span>' +
+      "Choose a cluster or tmux session on the left.<br><br>" +
+      '<span class="m">Cluster: b Bash / t tmux&nbsp;&nbsp;&nbsp;&nbsp;Session: Enter / f fork / x kill</span></div>';
+  }
+
   function runDemo() {
-    var nodes = freshNodes();
-    var hostIdx = 0;
-    var sessIdx = 0;
+    var nodes = freshTree();
+    var cursor = 0;
 
     /* scene 0: discovery */
-    nodeRows.innerHTML = "";
-    sessRows.innerHTML = "";
-    renderPreview(null, null);
-    footerKeys("");
-    tuiSummary.innerHTML = ' <span class="st load">⠋</span> Discovering remote tmux sessions…';
+    showIdle();
+    wsMain.classList.add("dim");
+    treeRows.innerHTML = "";
+    footerFor(null);
+    sideStatus.innerHTML = '<span class="st load">⠋</span> Discovering…';
 
     return wait(reduced ? 0 : 1000).then(function () {
-      renderNodes(nodes, -1, false);
-      renderSessions(nodes, 0, -1, false);
-      tuiSummary.textContent = " 3/4 reachable · " + totalSessions(nodes) + " sessions · refreshed 14:32:01";
-      footerKeys("Refresh complete · 3/4 nodes reachable");
-      return wait(700);
+      renderTree(nodes, -1);
+      sideStatus.textContent = "3/4 up · " + totalSessions(nodes) + " sessions";
+      return wait(800);
     }).then(function () {
-      /* scene 1: walk nodes, land on gpu/vscode-02 */
-      renderNodes(nodes, 0, true);
+      /* scene 1: walk the tree to gpu/vscode-02 → cache-fix */
+      renderTree(nodes, 0); footerFor(flatRows(nodes)[0]);
+      return flashKey("↓").then(function () { cursor = 1; renderTree(nodes, cursor); footerFor(flatRows(nodes)[1]); return wait(200); })
+        .then(function () { return flashKey("↓"); })
+        .then(function () { cursor = 2; renderTree(nodes, cursor); footerFor(flatRows(nodes)[2]); return wait(200); })
+        .then(function () { return flashKey("↓"); })
+        .then(function () { cursor = 3; renderTree(nodes, cursor); footerFor(flatRows(nodes)[3]); return wait(350); });
+    }).then(function () {
+      /* scene 2: Enter — drop straight into the long-running Codex session */
+      return flashKey("Enter", 500);
+    }).then(function () {
+      wsMain.classList.remove("dim");
+      wsPaneTitle.textContent = "gpu / vscode-02:cache-fix";
+      wsPaneBody.innerHTML = '<span class="m">Connecting to gpu / vscode-02 · tmux cache-fix…</span>';
+      sideStatus.textContent = "Opened persistent link · gpu / vscode-02:cache-fix";
+      return wait(reduced ? 0 : 850);
+    }).then(function () {
+      wsPaneBody.innerHTML = CODEX_HISTORY.join("\n");
+      return wait(reduced ? 0 : 2200);
+    }).then(function () {
+      /* the session is alive: type a follow-up into the composer */
+      wsPaneBody.setAttribute("data-base", CODEX_HISTORY.join("\n") + "\n\n");
+      return typeComposer("While you're here, add a regression test for the two-shard flush.");
+    }).then(function () {
+      return wait(500);
+    }).then(function () {
+      return streamLines(CODEX_LIVE_REPLY, reduced ? 0 : 420);
+    }).then(function () {
+      wsPaneBody.innerHTML += '<span class="caret"></span>';
+      return wait(reduced ? 0 : 2200);
+    }).then(function () {
+      /* scene 3: Shift+Left back to the sidebar; session keeps running */
+      return flashKey("Shift+←", 560);
+    }).then(function () {
+      wsMain.classList.add("dim");
+      return wait(500);
+    }).then(function () {
+      /* scene 4: rename eval-h3 -> eval-fp4 */
       return flashKey("↓").then(function () {
-        hostIdx = 1;
-        renderNodes(nodes, hostIdx, true);
-        renderSessions(nodes, hostIdx, -1, false);
-        return wait(280);
-      });
-    }).then(function () {
-      /* scene 2: enter sessions column, preview follows the cursor */
-      return flashKey("→").then(function () {
-        sessIdx = 0;
-        renderNodes(nodes, hostIdx, false);
-        renderSessions(nodes, hostIdx, sessIdx, true);
-        prevBody.innerHTML = '<span class="m">Loading recent pane output…</span>';
-        return wait(650);
-      });
-    }).then(function () {
-      renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
-      return wait(2100);
-    }).then(function () {
-      return flashKey("↓").then(function () {
-        sessIdx = 1;
-        renderSessions(nodes, hostIdx, sessIdx, true);
-        renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
-        return wait(1500);
-      });
-    }).then(function () {
-      return flashKey("↓").then(function () {
-        sessIdx = 2;
-        renderSessions(nodes, hostIdx, sessIdx, true);
-        renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
-        return wait(1500);
-      });
-    }).then(function () {
-      return flashKey("↑").then(function () {
-        sessIdx = 0;
-        renderSessions(nodes, hostIdx, sessIdx, true);
-        renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
-        return wait(900);
-      });
-    }).then(function () {
-      /* scene 3: Enter — drop straight into the long-running Codex session */
-      return flashKey("Enter", 520);
-    }).then(function () {
-      overlay.classList.remove("hidden");
-      attachBody.innerHTML = "";
-      return streamInto(attachBody, ATTACH_LINES, reduced ? 0 : 300);
-    }).then(function () {
-      return wait(reduced ? 0 : 2600);
-    }).then(function () {
-      /* detach with the remote tmux prefix */
-      return flashKey("C-b d", 560);
-    }).then(function () {
-      overlay.classList.add("hidden");
-      footerKeys("Detached from gpu / vscode-02:train · ssh exit 0");
-      return wait(1300);
-    }).then(function () {
-      /* scene 4: rename eval -> eval-h3 */
-      return flashKey("↓").then(function () {
-        sessIdx = 1;
-        renderSessions(nodes, hostIdx, sessIdx, true);
-        renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
-        return wait(350);
+        cursor = 4;
+        renderTree(nodes, cursor);
+        footerFor(flatRows(nodes)[cursor]);
+        return wait(300);
       });
     }).then(function () {
       return flashKey("e");
     }).then(function () {
-      footerPrompt("New name:", "", "Rename eval · Enter save · Esc cancel");
+      showPrompt("New name: ", "", "Rename eval-h3 · Enter save · Esc cancel");
       return wait(450);
     }).then(function () {
-      return typeInto("New name:", "eval-h3", "Rename eval · Enter save · Esc cancel", 85);
+      return typePrompt("New name: ", "eval-fp4", "Rename eval-h3 · Enter save · Esc cancel", 85);
     }).then(function () {
-      return flashKey("Enter", 380);
+      return flashKey("Enter", 360);
     }).then(function () {
-      nodes[hostIdx].sessions[sessIdx].name = "eval-h3";
-      renderSessions(nodes, hostIdx, sessIdx, true);
-      renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
-      footerKeys("Renamed eval -> eval-h3");
+      nodes[1].sessions[1].name = "eval-fp4";
+      renderTree(nodes, cursor);
+      footerFor(flatRows(nodes)[cursor]);
+      sideStatus.textContent = "Renamed eval-h3 -> eval-fp4";
       return wait(1400);
     }).then(function () {
       /* scene 5: fork the running Codex session */
       return flashKey("↑").then(function () {
-        sessIdx = 0;
-        renderSessions(nodes, hostIdx, sessIdx, true);
-        renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
-        return wait(350);
+        cursor = 3;
+        renderTree(nodes, cursor);
+        footerFor(flatRows(nodes)[cursor]);
+        return wait(300);
       });
     }).then(function () {
       return flashKey("f");
     }).then(function () {
-      footerPrompt("New tmux:", "train-fork-1445", "Fork Codex from train · Ctrl-u clears");
-      return wait(900);
+      showPrompt("New tmux: ", "cache-fix-fork-1512", "Fork Codex from cache-fix · Ctrl-u clears");
+      return wait(950);
     }).then(function () {
-      return flashKey("Enter", 380);
+      return flashKey("Enter", 360);
     }).then(function () {
-      footerKeys("Forking Codex train -> train-fork-1445…");
+      sideStatus.textContent = "Forking Codex cache-fix -> cache-fix-fork-1512…";
+      footerFor(flatRows(nodes)[cursor]);
       return wait(1100);
     }).then(function () {
-      nodes[hostIdx].sessions.splice(1, 0, { name: "train-fork-1445", cmd: "codex", path: "…/code/mission-control" });
-      renderSessions(nodes, hostIdx, 0, true);
-      tuiSummary.textContent = " 3/4 reachable · " + totalSessions(nodes) + " sessions · refreshed 14:32:01";
-      footerKeys("Forked Codex · train -> train-fork-1445");
+      nodes[1].sessions.splice(1, 0, { name: "cache-fix-fork-1512", cmd: "codex" });
+      renderTree(nodes, cursor);
+      sideStatus.textContent = "Forked Codex · cache-fix -> cache-fix-fork-1512 · 3/4 up · " + totalSessions(nodes) + " sessions";
       return wait(1700);
     }).then(function () {
-      /* scene 6: kill the squeue watcher */
-      sessIdx = nodes[hostIdx].sessions.length - 1;
-      renderSessions(nodes, hostIdx, sessIdx, true);
-      renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
+      /* scene 6: kill the squeue watcher on cpu/login */
+      var chain = Promise.resolve();
+      [0, 1, 2, 3].forEach(function () {
+        chain = chain.then(function () {
+          return flashKey("↓", 300).then(function () {
+            cursor += 1;
+            renderTree(nodes, cursor);
+            footerFor(flatRows(nodes)[cursor]);
+          });
+        });
+      });
+      return chain;
+    }).then(function () {
+      return wait(250);
+    }).then(function () {
       return flashKey("x");
     }).then(function () {
-      footerPrompt("Kill gpu/vscode-02:squeue?  [y/N]", "", "");
-      return wait(650);
+      showPrompt("Kill cpu/login:squeue?  [y/N] ", "", null);
+      return wait(700);
     }).then(function () {
-      return flashKey("y", 380);
+      return flashKey("y", 360);
     }).then(function () {
-      nodes[hostIdx].sessions.pop();
-      renderSessions(nodes, hostIdx, 0, false);
-      renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[0]);
-      tuiSummary.textContent = " 3/4 reachable · " + totalSessions(nodes) + " sessions · refreshed 14:32:01";
-      footerKeys("Killed gpu / vscode-02:squeue");
+      nodes[2].sessions.pop();
+      cursor = 3;
+      renderTree(nodes, cursor);
+      footerFor(flatRows(nodes)[cursor]);
+      sideStatus.textContent = "Killed cpu / login:squeue · 3/4 up · " + totalSessions(nodes) + " sessions";
       return wait(2400);
     }).then(function () {
       if (!reduced) return runDemo();
