@@ -113,9 +113,9 @@
   section { padding: 84px 0 20px; }
   .kicker { color: var(--cyan); font-size: 13px; letter-spacing: 2.5px; text-transform: uppercase; }
   h2 { font-size: clamp(24px, 3.6vw, 34px); margin: 10px 0 14px; letter-spacing: .5px; }
-  .section-sub { color: var(--muted); max-width: 640px; font-size: 15px; }
+  .section-sub { color: var(--muted); max-width: 680px; font-size: 15px; }
 
-  /* ---------- demo terminal ---------- */
+  /* ---------- demo terminal (dashboard replica) ---------- */
   .term-window {
     margin-top: 38px;
     background: var(--panel);
@@ -132,55 +132,71 @@
   .dot { width: 12px; height: 12px; border-radius: 50%; }
   .dot.r { background: #ff5f57; } .dot.y { background: #febc2e; } .dot.g { background: #28c840; }
   .term-chrome .tab-title { margin-left: 10px; font-size: 12.5px; color: var(--muted); }
-  .term-body { display: grid; grid-template-columns: 250px 1fr; min-height: 430px; }
-  @media (max-width: 720px) { .term-body { grid-template-columns: 190px 1fr; } }
 
-  .nav-pane { border-right: 1px solid var(--border); padding: 12px 0; font-size: 12.5px; background: #0a0f1d; transition: box-shadow .3s; }
-  .nav-pane.focused { box-shadow: inset 3px 0 0 var(--cyan-dim); }
-  .nav-header {
+  .tui-wrap { position: relative; }
+  .tui { font-size: 12.8px; }
+  .tui-header {
     background: var(--cyan-dim); color: #04121a; font-weight: 700;
-    margin: -12px 0 8px; padding: 7px 12px; font-size: 11.5px; letter-spacing: .6px;
+    padding: 4px 14px; letter-spacing: .5px; font-size: 12.5px;
   }
-  .nav-status { color: var(--muted); padding: 0 12px 8px; font-size: 11.5px; min-height: 20px; }
-  .nav-row { padding: 2.5px 12px; white-space: nowrap; color: var(--muted); display: flex; gap: 7px; align-items: baseline; }
-  .nav-row.host { color: var(--text); font-weight: 600; }
-  .nav-row.session { padding-left: 24px; font-weight: 400; }
-  .nav-row .count { margin-left: auto; color: var(--muted); font-weight: 400; }
-  .nav-row.cursor { background: var(--cyan); color: #04121a; border-radius: 3px; margin: 0 5px; padding-left: 7px; }
-  .nav-row.cursor.session { padding-left: 19px; }
-  .nav-row.cursor .count, .nav-row.cursor .st { color: #04121a; }
+  .tui-summary { color: var(--muted); padding: 3px 14px; font-size: 12px; min-height: 22px; }
+  .tui-main {
+    display: grid; grid-template-columns: 225px 1px 1fr;
+    min-height: 400px; padding: 6px 0 10px;
+  }
+  @media (max-width: 720px) { .tui-main { grid-template-columns: 165px 1px 1fr; } }
+  .tui-divider { background: var(--border); }
+  .tui-pane-title { font-weight: 700; padding: 4px 12px; color: var(--text); font-size: 12px; }
+  .tui-pane-title.accent { color: var(--amber); }
+  .tui-nodes { border-top: 1px solid var(--border); }
+  .tui-right { display: flex; flex-direction: column; min-width: 0; }
+  .tui-sessions { border-top: 1px solid var(--border); padding-bottom: 6px; }
+  .tui-preview { border-top: 1px solid var(--border); flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .tui-preview-path { color: var(--muted); padding: 0 12px 4px; font-size: 11.5px; }
+  .tui-preview-body {
+    padding: 2px 12px 8px; font-size: 12.2px; line-height: 1.5; color: #c9d1d9;
+    white-space: pre-wrap; word-break: break-word; overflow: hidden; flex: 1;
+    font-family: var(--mono);
+  }
+  .row { padding: 1.5px 12px; white-space: nowrap; color: var(--muted); display: flex; gap: 7px; }
+  .row .count { margin-left: auto; }
+  .row.cursor { background: #e6edf3; color: #0d1117; border-radius: 2px; font-weight: 600; }
+  .row.cursor .count, .row.cursor .st, .row.cursor .cmd { color: #0d1117; }
   .st.ok { color: var(--green); } .st.down { color: var(--red); } .st.load { color: var(--muted); }
-  .nav-footer { margin-top: 14px; padding: 10px 12px 0; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); min-height: 52px; }
-  .nav-footer .accent { color: var(--cyan); }
-
-  .remote-pane { display: flex; flex-direction: column; min-width: 0; transition: opacity .3s; }
-  .remote-pane.dim { opacity: .55; }
-  .pane-title {
-    padding: 7px 14px; font-size: 11.5px; color: var(--muted);
-    border-bottom: 1px solid var(--border); background: var(--panel-2);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .pane-body {
-    flex: 1; padding: 14px 16px; font-size: 12.8px; line-height: 1.55;
-    white-space: pre-wrap; word-break: break-word; overflow: hidden;
-    color: #c9d1d9;
-  }
-  .pane-body .g { color: var(--green); }
-  .pane-body .c { color: var(--cyan); }
-  .pane-body .m { color: var(--muted); }
-  .pane-body .y { color: var(--amber); }
-  .caret { display: inline-block; width: 8px; height: 15px; background: var(--cyan); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
-  @keyframes blink { 50% { opacity: 0; } }
-  .idle-ph { text-align: center; padding-top: 130px; color: var(--muted); font-size: 12.5px; }
-  .idle-ph .big { color: var(--text); font-weight: 700; font-size: 13.5px; display: block; margin-bottom: 10px; }
-
-  .term-statusbar {
+  .row .cmd { color: var(--muted); font-weight: 400; }
+  .row.cursor .path { color: #0d1117; }
+  .row .path { overflow: hidden; text-overflow: ellipsis; }
+  .tui-footer {
     background: #1a3a5c; color: #dbe9f5; font-size: 11.5px;
-    padding: 5px 14px; display: flex; justify-content: space-between;
+    padding: 5px 14px; display: flex; justify-content: space-between; gap: 16px;
+    min-height: 26px; align-items: center;
+  }
+  .tui-footer .footer-msg { color: #ffe9a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tui-footer .keys-hint { white-space: nowrap; overflow: hidden; }
+  @media (max-width: 720px) { .tui-footer .keys-hint { display: none; } }
+  .tui-footer .prompt-label { font-weight: 700; }
+  .caret { display: inline-block; width: 8px; height: 14px; background: var(--cyan); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .g { color: var(--green); } .c { color: var(--cyan); } .m { color: var(--muted); } .y { color: var(--amber); }
+
+  /* attach overlay: full-window remote tmux */
+  .attach-overlay {
+    position: absolute; inset: 0; background: #05080f; z-index: 4;
+    display: flex; flex-direction: column;
+  }
+  .attach-overlay.hidden { display: none; }
+  .attach-body {
+    flex: 1; padding: 16px 18px; font-size: 12.8px; line-height: 1.6;
+    white-space: pre-wrap; word-break: break-word; overflow: hidden; color: #c9d1d9;
+    font-family: var(--mono);
+  }
+  .attach-status {
+    background: #3fb950; color: #04120a; font-size: 11.5px; font-weight: 600;
+    padding: 4px 14px; display: flex; justify-content: space-between;
   }
 
   .keycap {
-    position: absolute; right: 18px; bottom: 44px; z-index: 5;
+    position: absolute; right: 18px; bottom: 44px; z-index: 6;
     background: var(--panel-2); border: 1px solid var(--cyan-dim);
     border-bottom-width: 3px; border-radius: 8px;
     color: var(--cyan); font-size: 13px; font-weight: 700;
@@ -194,7 +210,7 @@
     position: absolute; left: 50%; top: 70px; transform: translateX(-50%) translateY(-8px);
     background: #0e2a1b; border: 1px solid var(--green); color: #7ee2a0;
     font-size: 12.5px; padding: 8px 18px; border-radius: 8px;
-    opacity: 0; transition: all .25s; z-index: 6; pointer-events: none;
+    opacity: 0; transition: all .25s; z-index: 7; pointer-events: none;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
@@ -295,28 +311,47 @@
   <div class="wrap">
     <span class="kicker">Live demo</span>
     <h2>What it looks like</h2>
-    <p class="section-sub">A scripted replay of a real session: discover every host, walk the navigator, attach a running agent, hand it off to its own tab.</p>
+    <p class="section-sub">A scripted replay of the real TUI: preview a long-running Codex session, drop straight into it, then rename and fork sessions — never a manual tmux command.</p>
 
     <div class="term-window" id="termWindow">
       <div class="term-chrome">
         <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-        <span class="tab-title">CLUSTERMUX — iTerm2</span>
+        <span class="tab-title">clustermux --here</span>
       </div>
-      <div class="term-body">
-        <div class="nav-pane focused" id="navPane">
-          <div class="nav-header">CLUSTERMUX · NAVIGATOR</div>
-          <div class="nav-status" id="navStatus">&nbsp;</div>
-          <div id="navRows"></div>
-          <div class="nav-footer" id="navFooter"></div>
+      <div class="tui-wrap">
+        <div class="tui">
+          <div class="tui-header">&nbsp;CLUSTERMUX &nbsp;·&nbsp; GPU+CPU+EDGE</div>
+          <div class="tui-summary" id="tuiSummary">&nbsp;</div>
+          <div class="tui-main">
+            <div class="tui-nodes">
+              <div class="tui-pane-title">NODES</div>
+              <div id="nodeRows"></div>
+            </div>
+            <div class="tui-divider"></div>
+            <div class="tui-right">
+              <div class="tui-sessions">
+                <div class="tui-pane-title" id="sessTitle">SESSIONS</div>
+                <div id="sessRows"></div>
+              </div>
+              <div class="tui-preview">
+                <div class="tui-pane-title accent" id="prevTitle">REMOTE PREVIEW</div>
+                <div class="tui-preview-path" id="prevPath"></div>
+                <pre class="tui-preview-body" id="prevBody"></pre>
+              </div>
+            </div>
+          </div>
+          <div class="tui-footer" id="tuiFooter">
+            <span class="keys-hint">↑↓ select &nbsp; Enter attach here &nbsp; t new tab &nbsp; r refresh &nbsp; p preview &nbsp; q quit</span>
+            <span class="footer-msg" id="footerMsg"></span>
+          </div>
         </div>
-        <div class="remote-pane dim" id="remotePane">
-          <div class="pane-title" id="paneTitle">Remote tmux</div>
-          <div class="pane-body" id="paneBody"><div class="idle-ph"><span class="big">CLUSTERMUX · REMOTE TERMINAL</span>Choose a cluster or tmux session on the left.<br><br><span class="m">Cluster: b Bash / t tmux&nbsp;&nbsp;&nbsp;&nbsp;Session: Enter / f fork / x kill</span></div></div>
+        <div class="attach-overlay hidden" id="attachOverlay">
+          <div class="attach-body" id="attachBody"></div>
+          <div class="attach-status"><span>[train] 0:codex*</span><span>gpu/vscode-02</span></div>
         </div>
       </div>
-      <div class="term-statusbar"><span>&nbsp;CLUSTERMUX</span><span>Shift+Left: sidebar · remote tmux: C-b&nbsp;</span></div>
       <div class="keycap" id="keycap">↓</div>
-      <div class="toast" id="toast">Handed off to a new iTerm tab</div>
+      <div class="toast" id="toast"></div>
     </div>
   </div>
 </section>
@@ -328,11 +363,11 @@
     <p class="section-sub">Long-running agents on remote GPUs shouldn't die with your laptop lid. clustermux keeps every session visible and one keystroke away.</p>
     <div class="features">
       <div class="feature"><div class="glyph">◈</div><h3>Parallel discovery</h3><p>One dashboard for every host — reachability, latency, running command and working directory, queried over SSH at once.</p></div>
+      <div class="feature"><div class="glyph">▤</div><h3>Live previews</h3><p>Peek at any session's recent output before attaching — find the right agent without hopping between machines.</p></div>
       <div class="feature"><div class="glyph">⇄</div><h3>Persistent connections</h3><p>Each attached session lives in a hidden local tmux window. Detach, re-attach, switch hosts — the remote work never notices.</p></div>
       <div class="feature"><div class="glyph">⧉</div><h3>iTerm2 handoff</h3><p>Promote any session to its own tab with <b>o</b>. The tab supervises the SSH link and auto-reconnects after network drops.</p></div>
       <div class="feature"><div class="glyph">⑂</div><h3>Fork running agents</h3><p>Clone a live Codex session into a new tmux with <b>f</b> — clustermux finds the active rollout thread via /proc and runs codex fork.</p></div>
       <div class="feature"><div class="glyph">✓</div><h3>One-command setup</h3><p><b>clustermux --init</b> scans your SSH config, installs your key where it's rejected, and writes the hosts file. <b>--check</b> verifies it all.</p></div>
-      <div class="feature"><div class="glyph">∅</div><h3>Zero dependencies</h3><p>A single Python file on the standard library. No pip packages, no daemons, nothing running on the remote hosts but tmux.</p></div>
     </div>
   </div>
 </section>
@@ -428,72 +463,144 @@
   });
 
   /* ---------- demo data ---------- */
-  var HOSTS = [
-    { group: "gpu",  label: "login-01",  up: true,  sessions: [] },
-    { group: "gpu",  label: "vscode-02", up: true,  sessions: [
-      { name: "train",  cmd: "codex", attached: true },
-      { name: "eval",   cmd: "codex" },
-      { name: "squeue", cmd: "watch" }
-    ]},
-    { group: "cpu",  label: "login",     up: true,  sessions: [
-      { name: "data-pipe", cmd: "bash" }
-    ]},
-    { group: "edge", label: "dev",       up: false, sessions: [] }
+  function freshNodes() {
+    return [
+      { group: "gpu",  label: "login-01",  status: "online", latency: "0.4s", sessions: [] },
+      { group: "gpu",  label: "vscode-02", status: "online", latency: "0.6s", sessions: [
+        { name: "train",  cmd: "codex", path: "…/code/mission-control", attached: true },
+        { name: "eval",   cmd: "codex", path: "…/code/h3-nvfp4-recovery" },
+        { name: "squeue", cmd: "watch", path: "/home/moe" }
+      ]},
+      { group: "cpu",  label: "login",     status: "empty",  latency: "1.2s", sessions: [] },
+      { group: "edge", label: "dev",       status: "offline", latency: null,  sessions: [] }
+    ];
+  }
+
+  var PREVIEWS = {
+    "train": [
+      '<span class="y">›</span> shard the cache writer, keep the training loop untouched',
+      '<span class="c">●</span> Read src/cache/{writer,shard,io}.py <span class="m">— 12 files, 8.1k lines</span>',
+      '<span class="c">●</span> Plan: chunked writer + fsync barrier per shard',
+      '<span class="g">✓</span> patch v1 applied <span class="m">(+214 −96)</span>',
+      '<span class="g">✓</span> tests: 118 passed, 0 failed',
+      '<span class="g">✓</span> smoke step: loss 2.314 → 2.301',
+      '<span class="c">●</span> watching GPU 0-7 … util 97%',
+      '<span class="m">tokens 84.2k · ctx 41%</span>'
+    ],
+    "eval": [
+      '<span class="y">›</span> compare nvfp4 vs fp8 perplexity on h3',
+      '<span class="g">✓</span> eval harness ready <span class="m">(3 tasks)</span>',
+      '<span class="y">▸</span> running fp4 pass … 62%',
+      '<span class="m">tokens 12.0k · ctx 9%</span>'
+    ],
+    "squeue": [
+      'Every 2s: squeue -u moe',
+      '',
+      '  JOBID  PARTITION  NAME       ST  TIME   NODES',
+      '  48211  gpu        h3-train   R    14:02  8',
+      '  48212  gpu        h3-eval    R    01:47  1'
+    ]
+  };
+
+  var ATTACH_LINES = [
+    '<span class="m">╭─</span> <span class="c">codex</span> <span class="m">· gpt-5.3-codex · ~/code/mission-control</span>',
+    '',
+    '<span class="y">›</span> shard the cache writer, keep the training loop untouched',
+    '<span class="c">●</span> Read src/cache/{writer,shard,io}.py <span class="m">— 12 files, 8.1k lines</span>',
+    '<span class="c">●</span> Plan: chunked writer + fsync barrier per shard',
+    '<span class="g">✓</span> patch v1 applied <span class="m">(+214 −96)</span>',
+    '<span class="g">✓</span> tests: 118 passed, 0 failed',
+    '<span class="y">›</span> run a smoke step',
+    '<span class="g">✓</span> loss 2.314 → 2.301 — no regression',
+    '<span class="y">›</span> ship it',
+    '<span class="c">●</span> preparing commit…',
+    '<span class="g">✓</span> commit 9f3a2c1 <span class="m">— cache: shard the writer</span>',
+    '',
+    '<span class="m">tokens 91.7k · ctx 44% · session train · esc to interrupt</span>'
   ];
 
-  var navRows    = document.getElementById("navRows");
-  var navStatus  = document.getElementById("navStatus");
-  var navFooter  = document.getElementById("navFooter");
-  var navPane    = document.getElementById("navPane");
-  var remotePane = document.getElementById("remotePane");
-  var paneTitle  = document.getElementById("paneTitle");
-  var paneBody   = document.getElementById("paneBody");
+  var nodeRows   = document.getElementById("nodeRows");
+  var sessTitle  = document.getElementById("sessTitle");
+  var sessRows   = document.getElementById("sessRows");
+  var prevTitle  = document.getElementById("prevTitle");
+  var prevPath   = document.getElementById("prevPath");
+  var prevBody   = document.getElementById("prevBody");
+  var tuiSummary = document.getElementById("tuiSummary");
+  var tuiFooter  = document.getElementById("tuiFooter");
+  var footerMsg  = document.getElementById("footerMsg");
+  var overlay    = document.getElementById("attachOverlay");
+  var attachBody = document.getElementById("attachBody");
   var keycap     = document.getElementById("keycap");
-  var toast      = document.getElementById("toast");
 
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var KEYS_HINT = '↑↓ select &nbsp; Enter attach here &nbsp; t new tab &nbsp; r refresh &nbsp; p preview &nbsp; q quit';
 
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   function esc(s) {
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  /* flat row model: host rows followed by their session rows */
-  function flatRows() {
-    var rows = [];
-    HOSTS.forEach(function (h, hi) {
-      rows.push({ kind: "host", host: h, hi: hi });
-      h.sessions.forEach(function (s, si) {
-        rows.push({ kind: "session", host: h, session: s, hi: hi, si: si });
-      });
-    });
-    return rows;
+  function marker(status) {
+    if (status === "online") return '<span class="st ok">●</span>';
+    if (status === "empty")  return '<span class="st ok">○</span>';
+    if (status === "offline") return '<span class="st down">×</span>';
+    return '<span class="st load">…</span>';
   }
 
-  function renderRows(cursor) {
-    var rows = flatRows();
-    navRows.innerHTML = rows.map(function (row, i) {
-      if (row.kind === "host") {
-        var st = row.host.up
-          ? '<span class="st ok">●</span>'
-          : '<span class="st down">×</span>';
-        var count = row.host.up ? String(row.host.sessions.length) : "–";
-        return '<div class="nav-row host' + (i === cursor ? " cursor" : "") + '">' +
-          st + esc(row.host.group) + "/" + esc(row.host.label) +
-          '<span class="count">' + count + "</span></div>";
-      }
-      var s = row.session;
-      var mark = s.attached ? "◆" : " ";
-      return '<div class="nav-row session' + (i === cursor ? " cursor" : "") + '">' +
-        mark + " " + esc(s.name) +
-        '<span class="count">' + esc(s.cmd) + "</span></div>";
+  function renderNodes(nodes, cursor, focusHosts) {
+    nodeRows.innerHTML = nodes.map(function (n, i) {
+      var count = (n.status === "online" || n.status === "empty") ? String(n.sessions.length) : "–";
+      var cls = "row" + (focusHosts && i === cursor ? " cursor" : "");
+      return '<div class="' + cls + '">' + marker(n.status) + " " + esc(n.group) + "/" + esc(n.label) +
+        '<span class="count">' + count + "</span></div>";
     }).join("");
   }
 
-  function setFooter(kind) {
-    navFooter.innerHTML = kind === "host"
-      ? '<span class="accent">Cluster:</span> b Bash · t new tmux<br>↑↓ select · r refresh · q close'
-      : '<span class="accent">Session:</span> Enter open · f fork · x kill<br>e rename · o handoff tab · r refresh';
+  function renderSessions(nodes, hostIdx, cursor, focusSessions) {
+    var host = nodes[hostIdx];
+    sessTitle.textContent = "SESSIONS · " + host.group + " / " + host.label +
+      (host.latency ? " · " + host.latency : "");
+    if (host.status === "offline") {
+      sessRows.innerHTML = '<div class="row"><span class="st down">OFFLINE</span></div>' +
+        '<div class="row">connection timed out</div>';
+      return;
+    }
+    if (!host.sessions.length) {
+      sessRows.innerHTML = '<div class="row">Connected · no tmux sessions</div>';
+      return;
+    }
+    sessRows.innerHTML = host.sessions.map(function (s, i) {
+      var cls = "row" + (focusSessions && i === cursor ? " cursor" : "");
+      var mark = s.attached ? "◆" : " ";
+      return '<div class="' + cls + '">' + mark + " " + esc(s.name) +
+        '<span class="count"><span class="cmd">' + esc(s.cmd) + "</span>&nbsp; " +
+        '<span class="path">' + esc(s.path) + "</span></span></div>";
+    }).join("");
+  }
+
+  function renderPreview(host, session) {
+    if (!session) {
+      prevTitle.textContent = "REMOTE PREVIEW";
+      prevPath.textContent = "";
+      prevBody.innerHTML = "";
+      return;
+    }
+    prevTitle.textContent = "REMOTE PREVIEW · " + host.group + " / " + host.label +
+      " · session " + session.name + " · " + session.cmd;
+    prevPath.textContent = session.path;
+    var lines = PREVIEWS[session.name] || ['<span class="m">(no recent output)</span>'];
+    prevBody.innerHTML = lines.join("\n");
+  }
+
+  function footerKeys(msg) {
+    tuiFooter.innerHTML = '<span class="keys-hint">' + KEYS_HINT + '</span>' +
+      '<span class="footer-msg">' + esc(msg || "") + "</span>";
+  }
+
+  function footerPrompt(label, typed, msg) {
+    tuiFooter.innerHTML = '<span><span class="prompt-label"> ' + esc(label) + " </span>" +
+      esc(typed) + '<span class="caret"></span></span>' +
+      '<span class="footer-msg">' + esc(msg || "") + "</span>";
   }
 
   function flashKey(label, ms) {
@@ -502,116 +609,183 @@
     keycap.classList.add("press");
     return wait(ms || 420).then(function () {
       keycap.classList.remove("press");
-      return wait(160);
+      return wait(170);
     }).then(function () {
       keycap.classList.remove("show");
     });
   }
 
-  function showIdle() {
-    paneTitle.textContent = "Remote tmux";
-    paneBody.innerHTML = '<div class="idle-ph"><span class="big">CLUSTERMUX · REMOTE TERMINAL</span>' +
-      "Choose a cluster or tmux session on the left.<br><br>" +
-      '<span class="m">Cluster: b Bash / t tmux&nbsp;&nbsp;&nbsp;&nbsp;Session: Enter / f fork / x kill</span></div>';
+  function typeInto(label, text, msg, perChar) {
+    var typed = "";
+    var chain = Promise.resolve();
+    text.split("").forEach(function (ch) {
+      chain = chain.then(function () {
+        typed += ch;
+        footerPrompt(label, typed, msg);
+        return wait(perChar || 70);
+      });
+    });
+    return chain;
   }
 
-  function streamLines(lines, baseDelay) {
+  function streamInto(el, lines, delay) {
     var out = "";
     var chain = Promise.resolve();
-    lines.forEach(function (item, idx) {
+    lines.forEach(function (html) {
       chain = chain.then(function () {
-        out += item.html + "\n";
-        paneBody.innerHTML = out + '<span class="caret"></span>';
-        return wait(item.delay != null ? item.delay : baseDelay);
+        out += (out ? "\n" : "") + html;
+        el.innerHTML = out;
+        return wait(delay);
       });
     });
-    return chain.then(function () {
-      paneBody.innerHTML = out; /* drop caret at end */
-    });
+    return chain;
   }
 
-  function typeCommand(text) {
-    return streamLines([{ html: '<span class="g">$</span> ', delay: 0 }], 0).then(function () {
-      var typed = "";
-      var chain = Promise.resolve();
-      text.split("").forEach(function (ch) {
-        chain = chain.then(function () {
-          typed += ch;
-          paneBody.innerHTML = '<span class="g">$</span> ' + esc(typed) + '<span class="caret"></span>';
-          return wait(55 + Math.random() * 70);
-        });
-      });
-      return chain;
-    });
+  function totalSessions(nodes) {
+    return nodes.reduce(function (n, h) { return n + h.sessions.length; }, 0);
   }
-
-  var CODEX_STREAM = [
-    { html: '<span class="c">codex</span> <span class="m">v0.31 · gpt-5.3-codex · gpu/vscode-02</span>', delay: 500 },
-    { html: 'Reading project… <span class="m">42 files, 8.1k lines</span>', delay: 650 },
-    { html: '<span class="y">▸ plan:</span> shard the condition-cache writer', delay: 700 },
-    { html: '  <span class="g">✓</span> scan src/cache/ <span class="m">(12 files)</span>', delay: 480 },
-    { html: '  <span class="g">✓</span> draft patch v1 <span class="m">(+214 −96)</span>', delay: 560 },
-    { html: '  <span class="g">✓</span> tests <span class="m">118 passed, 0 failed</span>', delay: 620 },
-    { html: '  <span class="y">▸</span> training run untouched — still on GPU 0-7', delay: 500 },
-    { html: '<span class="m">tokens 84.2k · ctx 41% · session train</span>', delay: 400 }
-  ];
 
   function runDemo() {
-    return Promise.resolve().then(function () {
-      /* scene 1: discovery */
-      showIdle();
-      remotePane.classList.add("dim");
-      navPane.classList.add("focused");
-      navRows.innerHTML = "";
-      navStatus.innerHTML = '<span class="st load">⠋</span> Discovering remote tmux sessions…';
-      return wait(reduced ? 0 : 1100);
+    var nodes = freshNodes();
+    var hostIdx = 0;
+    var sessIdx = 0;
+
+    /* scene 0: discovery */
+    nodeRows.innerHTML = "";
+    sessRows.innerHTML = "";
+    renderPreview(null, null);
+    footerKeys("");
+    tuiSummary.innerHTML = ' <span class="st load">⠋</span> Discovering remote tmux sessions…';
+
+    return wait(reduced ? 0 : 1000).then(function () {
+      renderNodes(nodes, -1, false);
+      renderSessions(nodes, 0, -1, false);
+      tuiSummary.textContent = " 3/4 reachable · " + totalSessions(nodes) + " sessions · refreshed 14:32:01";
+      footerKeys("Refresh complete · 3/4 nodes reachable");
+      return wait(700);
     }).then(function () {
-      renderRows(-1);
-      navStatus.textContent = "3/4 up · 4 sessions · refreshed now";
-      return wait(reduced ? 0 : 700);
+      /* scene 1: walk nodes, land on gpu/vscode-02 */
+      renderNodes(nodes, 0, true);
+      return flashKey("↓").then(function () {
+        hostIdx = 1;
+        renderNodes(nodes, hostIdx, true);
+        renderSessions(nodes, hostIdx, -1, false);
+        return wait(280);
+      });
     }).then(function () {
-      /* scene 2: walk down to gpu/vscode-02 → train */
-      renderRows(0); setFooter("host");
-      return flashKey("↓").then(function () { renderRows(1); return wait(240); })
-        .then(function () { return flashKey("↓"); })
-        .then(function () { renderRows(2); setFooter("session"); return wait(300); });
+      /* scene 2: enter sessions column, preview follows the cursor */
+      return flashKey("→").then(function () {
+        sessIdx = 0;
+        renderNodes(nodes, hostIdx, false);
+        renderSessions(nodes, hostIdx, sessIdx, true);
+        prevBody.innerHTML = '<span class="m">Loading recent pane output…</span>';
+        return wait(650);
+      });
     }).then(function () {
-      /* scene 3: attach train */
+      renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
+      return wait(2100);
+    }).then(function () {
+      return flashKey("↓").then(function () {
+        sessIdx = 1;
+        renderSessions(nodes, hostIdx, sessIdx, true);
+        renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
+        return wait(1500);
+      });
+    }).then(function () {
+      return flashKey("↓").then(function () {
+        sessIdx = 2;
+        renderSessions(nodes, hostIdx, sessIdx, true);
+        renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
+        return wait(1500);
+      });
+    }).then(function () {
+      return flashKey("↑").then(function () {
+        sessIdx = 0;
+        renderSessions(nodes, hostIdx, sessIdx, true);
+        renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
+        return wait(900);
+      });
+    }).then(function () {
+      /* scene 3: Enter — drop straight into the long-running Codex session */
       return flashKey("Enter", 520);
     }).then(function () {
-      remotePane.classList.remove("dim");
-      navPane.classList.remove("focused");
-      paneTitle.textContent = "gpu / vscode-02 · session train";
-      paneBody.innerHTML = '<span class="m">Connecting to gpu / vscode-02 · tmux train…</span>';
-      return wait(reduced ? 0 : 900);
+      overlay.classList.remove("hidden");
+      attachBody.innerHTML = "";
+      return streamInto(attachBody, ATTACH_LINES, reduced ? 0 : 300);
     }).then(function () {
-      paneBody.innerHTML = "";
-      return typeCommand("tmux attach-session -t train");
+      return wait(reduced ? 0 : 2600);
     }).then(function () {
-      return wait(reduced ? 0 : 650);
+      /* detach with the remote tmux prefix */
+      return flashKey("C-b d", 560);
     }).then(function () {
-      paneBody.innerHTML = "";
-      return streamLines(CODEX_STREAM, 500);
+      overlay.classList.add("hidden");
+      footerKeys("Detached from gpu / vscode-02:train · ssh exit 0");
+      return wait(1300);
     }).then(function () {
-      return wait(reduced ? 0 : 2400);
+      /* scene 4: rename eval -> eval-h3 */
+      return flashKey("↓").then(function () {
+        sessIdx = 1;
+        renderSessions(nodes, hostIdx, sessIdx, true);
+        renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
+        return wait(350);
+      });
     }).then(function () {
-      /* scene 4: back to sidebar, hand off eval to a tab */
-      return flashKey("Shift+←", 560);
+      return flashKey("e");
     }).then(function () {
-      remotePane.classList.add("dim");
-      navPane.classList.add("focused");
-      renderRows(3);
-      return flashKey("o", 480);
+      footerPrompt("New name:", "", "Rename eval · Enter save · Esc cancel");
+      return wait(450);
     }).then(function () {
-      toast.classList.add("show");
-      paneTitle.textContent = "gpu / vscode-02 · session eval (tab)";
-      paneBody.innerHTML = '<div class="idle-ph"><span class="big">REMOTE TMUX HANDED OFF</span>' +
-        "gpu / vscode-02 · session eval<br><br>" +
-        '<span class="m">This session is active in its standalone iTerm tab.</span></div>';
-      return wait(reduced ? 0 : 2300);
+      return typeInto("New name:", "eval-h3", "Rename eval · Enter save · Esc cancel", 85);
     }).then(function () {
-      toast.classList.remove("show");
-      return wait(500);
+      return flashKey("Enter", 380);
+    }).then(function () {
+      nodes[hostIdx].sessions[sessIdx].name = "eval-h3";
+      renderSessions(nodes, hostIdx, sessIdx, true);
+      renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
+      footerKeys("Renamed eval -> eval-h3");
+      return wait(1400);
+    }).then(function () {
+      /* scene 5: fork the running Codex session */
+      return flashKey("↑").then(function () {
+        sessIdx = 0;
+        renderSessions(nodes, hostIdx, sessIdx, true);
+        renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
+        return wait(350);
+      });
+    }).then(function () {
+      return flashKey("f");
+    }).then(function () {
+      footerPrompt("New tmux:", "train-fork-1445", "Fork Codex from train · Ctrl-u clears");
+      return wait(900);
+    }).then(function () {
+      return flashKey("Enter", 380);
+    }).then(function () {
+      footerKeys("Forking Codex train -> train-fork-1445…");
+      return wait(1100);
+    }).then(function () {
+      nodes[hostIdx].sessions.splice(1, 0, { name: "train-fork-1445", cmd: "codex", path: "…/code/mission-control" });
+      renderSessions(nodes, hostIdx, 0, true);
+      tuiSummary.textContent = " 3/4 reachable · " + totalSessions(nodes) + " sessions · refreshed 14:32:01";
+      footerKeys("Forked Codex · train -> train-fork-1445");
+      return wait(1700);
+    }).then(function () {
+      /* scene 6: kill the squeue watcher */
+      sessIdx = nodes[hostIdx].sessions.length - 1;
+      renderSessions(nodes, hostIdx, sessIdx, true);
+      renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[sessIdx]);
+      return flashKey("x");
+    }).then(function () {
+      footerPrompt("Kill gpu/vscode-02:squeue?  [y/N]", "", "");
+      return wait(650);
+    }).then(function () {
+      return flashKey("y", 380);
+    }).then(function () {
+      nodes[hostIdx].sessions.pop();
+      renderSessions(nodes, hostIdx, 0, false);
+      renderPreview(nodes[hostIdx], nodes[hostIdx].sessions[0]);
+      tuiSummary.textContent = " 3/4 reachable · " + totalSessions(nodes) + " sessions · refreshed 14:32:01";
+      footerKeys("Killed gpu / vscode-02:squeue");
+      return wait(2400);
     }).then(function () {
       if (!reduced) return runDemo();
     });
